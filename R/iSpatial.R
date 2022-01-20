@@ -52,7 +52,7 @@ stabilize_expr = function(obj, neighbor = 5, npcs = 10, n.core = 10){
   
   # imputation expr value by KNN
   enhancer_expr = obj@assays$RNA@data
-  enhancer_expr = mclapply(colnames(enhancer_expr), function(cell){
+  enhancer_expr = parallel::mclapply(colnames(enhancer_expr), function(cell){
     cell_neighbors = TopNeighbors(obj@neighbors$RNA.nn, cell, n=neighbor)
     0.7*rowMedians(obj@assays$RNA@data[,cell_neighbors[-1]]) + 0.3 * obj@assays$RNA@data[,cell_neighbors[1]]
     #Matrix::rowMeans(obj@assays$RNA@data[,cell_neighbors])

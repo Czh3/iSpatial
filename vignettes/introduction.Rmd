@@ -29,7 +29,7 @@ data(NA_scRNA)
 data(NA_merFISH)
 
 # infer spatial transcriptome
-MSN_merFISH_iSpatial = iSpatial::iSpatial(NA_merFISH, NA_scRNA, RNA.weight=0.3)
+MSN_merFISH_iSpatial = iSpatial::iSpatial(NA_merFISH, NA_scRNA)
 
 MSN_merFISH_iSpatial
 
