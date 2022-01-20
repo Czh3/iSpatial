@@ -16,7 +16,8 @@ knitr::opts_chunk$set(
 
 # load package
 ```{r setup}
-#devtools::install_github("Czh3/iSpatial")
+#devtools::install_github("Czh3/iSpatial", force = T)
+trace("iSpatial", edit=TRUE)
 library(iSpatial)
 ```
 
