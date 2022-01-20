@@ -71,6 +71,7 @@ stabilize_expr = function(obj, neighbor = 5, npcs = 10, n.core = 10){
 #'
 #' @param x sparse matrix
 #' @return correlation matrix
+#' 
 #' @export
 #' 
 sparse.cor <- function(x){

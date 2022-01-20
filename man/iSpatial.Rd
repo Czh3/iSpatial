@@ -31,7 +31,7 @@ iSpatial(
 in spRNA and scRNA. When choose defaulted "NA", we use a dynamics weight
 to assign scRNA values to spRNA. The dynamics weight based on the correlation
 between scRNA cell and spRNA cell. If a RNA.weight (from 0 to 1) were given,
-the inferred expression = (1 - RNA.weight) \* spRNA + RNA.weight \* scRNA.}
+the inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.}
 
 \item{n.core}{number of CPU cores used to parallel.}
 
