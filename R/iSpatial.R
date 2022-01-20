@@ -70,6 +70,9 @@ stabilize_expr = function(obj, neighbor = 5, npcs = 10, n.core = 10){
 #' 
 #' @param x sparse matrix
 #' @return correlation matrix
+#' @noRd
+#' 
+#' @export
 #' 
 sparse.cor <- function(x){
   n <- nrow(x)
@@ -101,7 +104,7 @@ sparse.cor <- function(x){
 #' in spRNA and scRNA. When choose defaulted "NA", we use a dynamics weight
 #' to assign scRNA values to spRNA. The dynamics weight based on the correlation
 #' between scRNA cell and spRNA cell. If a RNA.weight (from 0 to 1) were given,
-#' the inferred expression = (1 - RNA.weight) \* spRNA + RNA.weight \* scRNA.
+#' the inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.
 #' @param n.core number of CPU cores used to parallel.
 #' @param correct.expr Whether to stabilize expression in scRNA and spRNA.
 #' @param correct.neighbor number of nearest neighbors used to correct expr.
@@ -190,7 +193,8 @@ iSpatial = function(
   #boxplot(log1p(avg_expr$RNA[genes_select, ]))
   
   # global level integration
-  integrated = run_harmony(integrated, genes_select)
+  
+    integrated = suppressWarnings(run_harmony(integrated, genes_select))
   
   # find neighbors
   integrated = FindNeighbors(integrated, k.param = k.neighbor, reduction="harmony", dims=dims, return.neighbor = T)
