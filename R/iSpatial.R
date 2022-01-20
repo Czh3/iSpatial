@@ -1,4 +1,9 @@
-
+#' @import Seurat
+#' @import SeuratObject
+#' @import ggplot2
+#' @import harmony
+#'
+NULL
 
 ############# infer whole genome spatial transcriptome from single cell RNAseq
 
@@ -12,9 +17,9 @@
 #' @return seurat object
 #' 
 run_harmony = function(seurat_obj, genes_select){
-  VariableFeatures(seurat_obj) = genes_select
-  seurat_obj = ScaleData(seurat_obj, features = genes_select, verbose = FALSE)
-  seurat_obj = RunPCA(seurat_obj, npcs = 30, features = genes_select, verbose = FALSE)
+  SeuratObject::VariableFeatures(seurat_obj) = genes_select
+  seurat_obj = Seurat::ScaleData(seurat_obj, features = genes_select, verbose = FALSE)
+  seurat_obj = Seurat::RunPCA(seurat_obj, npcs = 30, features = genes_select, verbose = FALSE)
   
   # harmony
   seurat_obj <- harmony::RunHarmony(
@@ -45,15 +50,15 @@ run_harmony = function(seurat_obj, genes_select){
 #' 
 #' 
 stabilize_expr = function(obj, neighbor = 5, npcs = 10, n.core = 10){
-  obj = FindVariableFeatures(obj, selection.method = "vst", verbose = FALSE) 
-  obj = ScaleData(obj, verbose = FALSE)
-  obj = RunPCA(obj, npcs = npcs, verbose = FALSE)
-  obj <- FindNeighbors(obj, return.neighbor = T, k.param = neighbor, verbose = FALSE)
+  obj = Seurat::FindVariableFeatures(obj, selection.method = "vst", verbose = FALSE) 
+  obj = Seurat::ScaleData(obj, verbose = FALSE)
+  obj = Seurat::RunPCA(obj, npcs = npcs, verbose = FALSE)
+  obj = Seurat::FindNeighbors(obj, return.neighbor = T, k.param = neighbor, verbose = FALSE)
   
   # imputation expr value by KNN
   enhancer_expr = obj@assays$RNA@data
   enhancer_expr = parallel::mclapply(colnames(enhancer_expr), function(cell){
-    cell_neighbors = TopNeighbors(obj@neighbors$RNA.nn, cell, n=neighbor)
+    cell_neighbors = Seurat::TopNeighbors(obj@neighbors$RNA.nn, cell, n=neighbor)
     0.7*rowMedians(obj@assays$RNA@data[,cell_neighbors[-1]]) + 0.3 * obj@assays$RNA@data[,cell_neighbors[1]]
     #Matrix::rowMeans(obj@assays$RNA@data[,cell_neighbors])
   }, mc.cores = n.core)
@@ -79,14 +84,14 @@ sparse.cor <- function(x){
   m <- ncol(x)
   ii <- unique(x@i)+1 # rows with a non-zero element
   
-  Ex <- colMeans(x)
+  Ex <- Matrix::colMeans(x)
   nozero <- as.vector(x[ii,]) - rep(Ex,each=length(ii)) 
   
-  covmat <- ( crossprod(matrix(nozero,ncol=m)) +
-                crossprod(t(Ex))*(n-length(ii))
+  covmat <- ( Matrix::crossprod(matrix(nozero,ncol=m)) +
+                Matrix::crossprod(t(Ex))*(n-length(ii))
   )/(n-1)
   sdvec <- sqrt(diag(covmat))
-  covmat/crossprod(t(sdvec))
+  covmat/Matrix::crossprod(t(sdvec))
 }
 
 
@@ -194,9 +199,9 @@ iSpatial = function(
   integrated = suppressWarnings(run_harmony(integrated, genes_select))
   
   # find neighbors
-  integrated = FindNeighbors(integrated, k.param = k.neighbor, reduction="harmony", dims=dims, return.neighbor = T)
+  integrated = Seurat::FindNeighbors(integrated, k.param = k.neighbor, reduction="harmony", dims=dims, return.neighbor = T)
   neigbors = sapply(colnames(subset(integrated, subset = tech == "scRNA", invert = TRUE)), function(i){
-    TopNeighbors(integrated@neighbors$RNA.nn, i, n = k.neighbor)
+    Seurat::TopNeighbors(integrated@neighbors$RNA.nn, i, n = k.neighbor)
   })
   
   neigbors = as.data.frame(neigbors)
@@ -253,7 +258,7 @@ iSpatial = function(
   colnames(enhancer_expr) = colnames(integrated_merFISH)
   
   # assign inferred expression value to new assay
-  integrated_merFISH[[infered.assay]] = CreateAssayObject(data = as(enhancer_expr, "dgCMatrix"))
+  integrated_merFISH[[infered.assay]] = SeuratObject::CreateAssayObject(data = as(enhancer_expr, "dgCMatrix"))
   
   DefaultAssay(integrated_merFISH) <- infered.assay
   

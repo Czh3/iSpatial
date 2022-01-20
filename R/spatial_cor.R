@@ -22,6 +22,7 @@ spatial_cor = function(obj1,
                        assay2, 
                        feature = NA,
                        bin = 20,
+                       n.core = 10,
                        n.sample = 300){
 
   if(is.na(feature)){
@@ -29,7 +30,7 @@ spatial_cor = function(obj1,
     feature = names(feature[feature[,1] > 0, ])
   }
   
-  cor_bin = mclapply(1:300, function(x) {
+  cor_bin = parallel::mclapply(1:300, function(x) {
     cells = sample_region(obj1)
     if(length(cells) > 2){
       cbind(
@@ -37,7 +38,7 @@ spatial_cor = function(obj1,
         Matrix::rowMeans((obj2[[assay2]]@data[feature, cells]), na.rm = T)
       )
     }
-  }, mc.cores = 10)
+  }, mc.cores = n.core)
   
   cor_bin = do.call(cbind, cor_bin)
   

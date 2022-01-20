@@ -1,3 +1,8 @@
+#' @import Seurat
+#' @import SeuratObject
+#' @import ggplot2
+#'
+NULL
 
 #' Find spatial variable genes
 #' 
@@ -238,12 +243,12 @@ spatial_signature_plot = function(object,
   }
   
   if(legend){
-    SpatialFeaturePlot(object, features = gene.set.name, pt.size.factor=pt.size.factor, stroke=NA,  alpha = alpha,
+    Seurat::SpatialFeaturePlot(object, features = gene.set.name, pt.size.factor=pt.size.factor, stroke=NA,  alpha = alpha,
                        slot="data", max.cutoff = max.cutoff) +
       theme(legend.position = "right") +
       scale_fill_gradientn(colours = color.scale) 
   }else{
-    SpatialFeaturePlot(object, features = gene.set.name, pt.size.factor=pt.size.factor, stroke=NA,  alpha = alpha,
+    Seurat::SpatialFeaturePlot(object, features = gene.set.name, pt.size.factor=pt.size.factor, stroke=NA,  alpha = alpha,
                        slot="data", max.cutoff = max.cutoff) +
       theme(legend.position = "none",
             plot.title = element_text(hjust = 0.5)) +

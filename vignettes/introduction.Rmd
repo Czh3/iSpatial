@@ -17,7 +17,6 @@ knitr::opts_chunk$set(
 # load package
 ```{r setup}
 #devtools::install_github("Czh3/iSpatial", force = T)
-trace("iSpatial", edit=TRUE)
 library(iSpatial)
 ```
 
@@ -29,6 +28,7 @@ data(NA_scRNA)
 # merFISH data
 data(NA_merFISH)
 
+library(Seurat)
 
 # infer spatial transcriptome
 MSN_merFISH_iSpatial = iSpatial::iSpatial(NA_merFISH, NA_scRNA)

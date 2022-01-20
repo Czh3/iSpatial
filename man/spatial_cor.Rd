@@ -4,7 +4,16 @@
 \alias{spatial_cor}
 \title{Calculate spatially expression correlation}
 \usage{
-spatial_cor(obj1, assay1, obj2, assay2, feature = NA, bin = 20, n.sample = 300)
+spatial_cor(
+  obj1,
+  assay1,
+  obj2,
+  assay2,
+  feature = NA,
+  bin = 20,
+  n.core = 10,
+  n.sample = 300
+)
 }
 \arguments{
 \item{obj1}{seurat object 1}
