@@ -66,28 +66,7 @@ stabilize_expr = function(obj, neighbor = 5, npcs = 10, n.core = 10){
   return(obj)
 }
 
-#' calculate correlation
-#' 
-#' @param x sparse matrix
-#' @return correlation matrix
-#' @noRd
-#' 
-#' @export
-#' 
-sparse.cor <- function(x){
-  n <- nrow(x)
-  m <- ncol(x)
-  ii <- unique(x@i)+1 # rows with a non-zero element
-  
-  Ex <- colMeans(x)
-  nozero <- as.vector(x[ii,]) - rep(Ex,each=length(ii)) 
-  
-  covmat <- ( crossprod(matrix(nozero,ncol=m)) +
-                crossprod(t(Ex))*(n-length(ii))
-  )/(n-1)
-  sdvec <- sqrt(diag(covmat))
-  covmat/crossprod(t(sdvec))
-}
+
 
 #' Main function of iSpatial
 #' 
@@ -158,10 +137,6 @@ iSpatial = function(
     stop("Too few intesected genes between scRNA and spRNA.")
   }
   
-  
-  scRNA = NA_scRNA
-  spRNA = NA_merFISH
-  
   # merge two objects
   message("integrating.")
   integrated = merge(scRNA, spRNA)
@@ -194,7 +169,7 @@ iSpatial = function(
   
   # global level integration
   
-    integrated = suppressWarnings(run_harmony(integrated, genes_select))
+  integrated = suppressWarnings(run_harmony(integrated, genes_select))
   
   # find neighbors
   integrated = FindNeighbors(integrated, k.param = k.neighbor, reduction="harmony", dims=dims, return.neighbor = T)
@@ -214,6 +189,23 @@ iSpatial = function(
   neigbors = lapply(neigbors, function(x){
     x = x[x %in% cells_name]
   })
+  
+  
+  # calculate correlation
+  sparse.cor <- function(x){
+    n <- nrow(x)
+    m <- ncol(x)
+    ii <- unique(x@i)+1 # rows with a non-zero element
+    
+    Ex <- colMeans(x)
+    nozero <- as.vector(x[ii,]) - rep(Ex,each=length(ii)) 
+    
+    covmat <- ( crossprod(matrix(nozero,ncol=m)) +
+                  crossprod(t(Ex))*(n-length(ii))
+    )/(n-1)
+    sdvec <- sqrt(diag(covmat))
+    covmat/crossprod(t(sdvec))
+  }
   
   enhancer_expr = integrated_merFISH@assays$RNA@data
   

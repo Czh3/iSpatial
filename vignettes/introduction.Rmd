@@ -28,6 +28,7 @@ data(NA_scRNA)
 # merFISH data
 data(NA_merFISH)
 
+
 # infer spatial transcriptome
 MSN_merFISH_iSpatial = iSpatial::iSpatial(NA_merFISH, NA_scRNA)
 
@@ -64,3 +65,8 @@ spatial_signature_plot(MSN_merFISH_iSpatial,
                        set.name = "Class 6")
 
 ```
+
+```{r}
+sessionInfo()
+```
+
