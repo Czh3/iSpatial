@@ -1,0 +1,31 @@
+Package: iSpatial
+Title: infer transcriptome-wide spatial expression via integration of scRNA and spRNA 
+Version: 0.0.1
+Authors@R: 
+    person("Chao", "Zhang", , "chao.zhang@childrens.harvard.edu", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0003-4167-4872"))
+Description: Integrate scRNA-seq and FISH-based spatial transcriptome (merFISH, seqFISH) data to infer/enhance the expression in spRNA.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Imports:
+	Seurat,
+	SeuratObject,
+	ggplot2,
+	ggsci,
+	reshape2,
+	harmony
+Collate: 
+    'iSpatial.R'
+    'spatial_cor.R'
+    'cross_validation.R'
+    'data.R'
+    'spatial_variable_gene.R'
+Depends: 
+    R (>= 2.10)
+LazyData: true
+Suggests: 
+    rmarkdown,
+    knitr
+VignetteBuilder: knitr
