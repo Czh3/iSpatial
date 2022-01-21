@@ -12,7 +12,8 @@ iSpatial(
   infered.assay = "enhanced",
   RNA.weight = NA,
   n.core = 10,
-  correct.expr = TRUE,
+  correct.scRNA = TRUE,
+  correct.spRNA = FALSE,
   correct.neighbor = 5
 )
 }
@@ -35,7 +36,9 @@ the inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.}
 
 \item{n.core}{number of CPU cores used to parallel.}
 
-\item{correct.expr}{Whether to stabilize expression in scRNA and spRNA.}
+\item{correct.scRNA}{Whether to stabilize expression in scRNA.}
+
+\item{correct.spRNA}{Whether to stabilize expression in spRNA.}
 
 \item{correct.neighbor}{number of nearest neighbors used to correct expr.}
 }

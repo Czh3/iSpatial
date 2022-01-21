@@ -60,7 +60,7 @@ stabilize_expr = function(obj, neighbor = 5, npcs = 10, n.core = 10){
   enhancer_expr = obj@assays$RNA@data
   enhancer_expr = parallel::mclapply(colnames(enhancer_expr), function(cell){
     cell_neighbors = Seurat::TopNeighbors(obj@neighbors$RNA.nn, cell, n=neighbor)
-    0.7* matrixStats::rowMedians(as.matrix(obj@assays$RNA@data[,cell_neighbors[-1]])) + 0.3 * obj@assays$RNA@data[,cell_neighbors[1]]
+    0.5 * matrixStats::rowMedians(as.matrix(obj@assays$RNA@data[,cell_neighbors[-1]])) + 0.5 * obj@assays$RNA@data[,cell_neighbors[1]]
     #Matrix::rowMeans(obj@assays$RNA@data[,cell_neighbors])
   }, mc.cores = n.core)
   enhancer_expr = do.call(cbind, enhancer_expr)
@@ -113,7 +113,8 @@ sparse.cor <- function(x){
 #' between scRNA cell and spRNA cell. If a RNA.weight (from 0 to 1) were given,
 #' the inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.
 #' @param n.core number of CPU cores used to parallel.
-#' @param correct.expr Whether to stabilize expression in scRNA and spRNA.
+#' @param correct.scRNA Whether to stabilize expression in scRNA.
+#' @param correct.spRNA Whether to stabilize expression in spRNA.
 #' @param correct.neighbor number of nearest neighbors used to correct expr.
 #' 
 #' @return returns a seurat object with inferred expression in infered.assay.
@@ -129,7 +130,8 @@ iSpatial = function(
   infered.assay = "enhanced",
   RNA.weight = NA,
   n.core = 10,
-  correct.expr = TRUE,
+  correct.scRNA = TRUE,
+  correct.spRNA = FALSE,
   correct.neighbor = 5
 ){
   spRNA$tech = "spatial"
@@ -151,9 +153,12 @@ iSpatial = function(
     stop(paste(scRNA, " is not normlized. Run Seurat::NormalizeData."))
   }
   
-  if(correct.expr){
+  if(correct.scRNA){
     message("Stablize spatial transcriptome.")
     spRNA = stabilize_expr(spRNA, neighbor = correct.neighbor, n.core = n.core, npcs = length(dims))
+  }
+  
+  if(correct.spRNA){
     message("Stablize single cell RNAseq.")
     scRNA = stabilize_expr(scRNA, neighbor = correct.neighbor, n.core = n.core, npcs = length(dims))
   }
