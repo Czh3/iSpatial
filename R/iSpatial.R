@@ -130,8 +130,8 @@ iSpatial = function(
   infered.assay = "enhanced",
   RNA.weight = NA,
   n.core = 10,
-  correct.scRNA = TRUE,
-  correct.spRNA = FALSE,
+  correct.spRNA = TRUE,
+  correct.scRNA = FALSE,
   correct.neighbor = 5
 ){
   spRNA$tech = "spatial"
@@ -153,12 +153,12 @@ iSpatial = function(
     stop(paste(scRNA, " is not normlized. Run Seurat::NormalizeData."))
   }
   
-  if(correct.scRNA){
+  if(correct.spRNA){
     message("Stablize spatial transcriptome.")
     spRNA = stabilize_expr(spRNA, neighbor = correct.neighbor, n.core = n.core, npcs = length(dims))
   }
   
-  if(correct.spRNA){
+  if(correct.scRNA){
     message("Stablize single cell RNAseq.")
     scRNA = stabilize_expr(scRNA, neighbor = correct.neighbor, n.core = n.core, npcs = length(dims))
   }

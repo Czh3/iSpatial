@@ -4,7 +4,13 @@
 \alias{cross_validation}
 \title{10 fold cross validation}
 \usage{
-cross_validation(spRNA, scRNA, fold = 10, correct.expr = FALSE)
+cross_validation(
+  spRNA,
+  scRNA,
+  fold = 10,
+  correct.spRNA = TRUE,
+  correct.scRNA = FALSE
+)
 }
 \arguments{
 \item{spRNA}{seurat object of spatial transcriptome}
@@ -13,8 +19,9 @@ cross_validation(spRNA, scRNA, fold = 10, correct.expr = FALSE)
 
 \item{fold}{number of X fold crossing validation}
 
-\item{correct.expr}{Whether to stabilize expression in scRNA and spRNA.
-To speed up, you can set this value FALSE}
+\item{correct.spRNA}{Whether to stabilize expression in spRNA.}
+
+\item{correct.scRNA}{Whether to stabilize expression in scRNA.}
 }
 \value{
 correlation between inferred spatial expression and ground true.
