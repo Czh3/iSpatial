@@ -59,7 +59,6 @@ stabilize_expr = function(obj, neighbor = 5, npcs = 10, n.core = 10){
   # imputation expr value by KNN
   enhancer_expr = obj@assays$RNA@data
   enhancer_expr = parallel::mclapply(colnames(enhancer_expr), function(cell){
-    cell = colnames(enhancer_expr)[1]
     cell_neighbors = Seurat::TopNeighbors(obj@neighbors$RNA.nn, cell, n=neighbor)
     0.7* matrixStats::rowMedians(as.matrix(obj@assays$RNA@data[,cell_neighbors[-1]])) + 0.3 * obj@assays$RNA@data[,cell_neighbors[1]]
     #Matrix::rowMeans(obj@assays$RNA@data[,cell_neighbors])
@@ -135,7 +134,7 @@ iSpatial = function(
 ){
   spRNA$tech = "spatial"
   scRNA$tech = "scRNA"
-  
+ 
   if(is.null(spRNA@assays$RNA)){
     stop(paste(spRNA, " do not have 'RNA' assay."))
   }
@@ -151,7 +150,6 @@ iSpatial = function(
   if(length(scRNA@assays$RNA@data) == 0){
     stop(paste(scRNA, " is not normlized. Run Seurat::NormalizeData."))
   }
-  
   
   if(correct.expr){
     message("Stablize spatial transcriptome.")

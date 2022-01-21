@@ -30,33 +30,32 @@ data(NA_merFISH)
 
 library(Seurat)
 
-NA_merFISH1 = stabilize_expr(NA_merFISH)
-trace("stabilize_expr", edit=TRUE)
+NA_merFISH1 = iSpatial::stabilize_expr(NA_merFISH)
 
 # infer spatial transcriptome
-MSN_merFISH_iSpatial = iSpatial::iSpatial(NA_merFISH, NA_scRNA)
-
-MSN_merFISH_iSpatial
+NA_merFISH_iSpatial = iSpatial::iSpatial(NA_merFISH, NA_scRNA)
+trace(iSpatial::iSpatial, edit=TRUE)
+NA_merFISH_iSpatial
 
 # Gene "Acbd7" is not in the merFISH targeted genes
-"Acbd7" %in% rownames(MSN_merFISH)
+"Acbd7" %in% rownames(NA_merFISH)
 
 # After inferring, we can get the spatial expression of Acbd7
-SpatialFeaturePlot(MSN_merFISH_iSpatial, features = "Acbd7", stroke=0.1, slot="data") +
+SpatialFeaturePlot(NA_merFISH_iSpatial, features = "Acbd7", stroke=0.1, slot="data") +
   theme(legend.position = "right") +
   scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
 
 # Find spatial variable genes
-SVGs_infer = spatial_variable_genes(MSN_merFISH_iSpatial, "enhanced", n.core = 10)
+SVGs_infer = spatial_variable_genes(NA_merFISH_iSpatial, "enhanced", n.core = 10)
 SVGs_infer_sig = SVGs_infer[SVGs_infer$p.value < 0.001, ]
 
-g = ggplot(SVGs_infer, aes(pct.expr, -log10(p.value), gene = gene, color = -log10(p.value))) +
+g = ggplot2::ggplot(SVGs_infer, aes(pct.expr, -log10(p.value), gene = gene, color = -log10(p.value))) +
   geom_point()+
   theme_classic()
 plotly::ggplotly(g)
 
 # cluster genes based on spatial expression pattern
-gene_cluster = cluster_spatial_expr_pattern(MSN_merFISH_iSpatial, "enhanced", 
+gene_cluster = cluster_spatial_expr_pattern(NA_merFISH_iSpatial, "enhanced", 
                              feature = SVGs_infer_sig$gene, n.cluster = 20,
                              ncol.plot = 4, bin = 20, n.core = 10)
 
@@ -64,7 +63,7 @@ gene_cluster = cluster_spatial_expr_pattern(MSN_merFISH_iSpatial, "enhanced",
 names(gene_cluster[gene_cluster==6])
 
 # plot
-spatial_signature_plot(MSN_merFISH_iSpatial, 
+spatial_signature_plot(NA_merFISH_iSpatial, 
                        gene.set = names(gene_cluster[gene_cluster==6]),
                        set.name = "Class 6")
 
