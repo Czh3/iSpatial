@@ -59,8 +59,9 @@ stabilize_expr = function(obj, neighbor = 5, npcs = 10, n.core = 10){
   # imputation expr value by KNN
   enhancer_expr = obj@assays$RNA@data
   enhancer_expr = parallel::mclapply(colnames(enhancer_expr), function(cell){
+    cell = colnames(enhancer_expr)[1]
     cell_neighbors = Seurat::TopNeighbors(obj@neighbors$RNA.nn, cell, n=neighbor)
-    0.7* matrixStats::rowMedians(obj@assays$RNA@data[,cell_neighbors[-1]]) + 0.3 * obj@assays$RNA@data[,cell_neighbors[1]]
+    0.7* matrixStats::rowMedians(as.matrix(obj@assays$RNA@data[,cell_neighbors[-1]])) + 0.3 * obj@assays$RNA@data[,cell_neighbors[1]]
     #Matrix::rowMeans(obj@assays$RNA@data[,cell_neighbors])
   }, mc.cores = n.core)
   enhancer_expr = do.call(cbind, enhancer_expr)

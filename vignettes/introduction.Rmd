@@ -30,6 +30,9 @@ data(NA_merFISH)
 
 library(Seurat)
 
+NA_merFISH1 = stabilize_expr(NA_merFISH)
+trace("stabilize_expr", edit=TRUE)
+
 # infer spatial transcriptome
 MSN_merFISH_iSpatial = iSpatial::iSpatial(NA_merFISH, NA_scRNA)
 
