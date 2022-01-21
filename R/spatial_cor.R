@@ -46,6 +46,7 @@ spatial_cor = function(obj1,
     cor(x[seq(1, length(x), by=2)],
         x[seq(2, length(x), by=2)])
   })
+
 }
 
 
@@ -58,6 +59,7 @@ spatial_cor = function(obj1,
 #'
 #' @return A vector including the cell names in a random sampling region
 #'
+#' @export
 #'
 
 sample_region = function(obj, bin = 20){

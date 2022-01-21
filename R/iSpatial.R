@@ -54,7 +54,7 @@ stabilize_expr = function(obj, neighbor = 5, npcs = 10, n.core = 10){
   obj = Seurat::FindVariableFeatures(obj, selection.method = "vst", verbose = FALSE) 
   obj = Seurat::ScaleData(obj, verbose = FALSE)
   obj = Seurat::RunPCA(obj, npcs = npcs, verbose = FALSE)
-  obj = Seurat::FindNeighbors(obj, return.neighbor = T, k.param = neighbor, verbose = FALSE)
+  obj = suppressMessages(Seurat::FindNeighbors(obj, return.neighbor = T, k.param = neighbor, verbose = FALSE))
   
   # imputation expr value by KNN
   enhancer_expr = obj@assays$RNA@data

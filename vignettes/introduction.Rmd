@@ -1,6 +1,6 @@
 ---
 title: "introduction"
-output: rmarkdown::html_vignette
+output: html_document
 vignette: >
   %\VignetteIndexEntry{introduction}
   %\VignetteEngine{knitr::rmarkdown}
@@ -29,13 +29,11 @@ data(NA_scRNA)
 data(NA_merFISH)
 
 library(Seurat)
-
-NA_merFISH1 = iSpatial::stabilize_expr(NA_merFISH)
+library(ggplot2)
 
 # infer spatial transcriptome
 NA_merFISH_iSpatial = iSpatial::iSpatial(NA_merFISH, NA_scRNA)
-trace(iSpatial::iSpatial, edit=TRUE)
-NA_merFISH_iSpatial
+
 
 # Gene "Acbd7" is not in the merFISH targeted genes
 "Acbd7" %in% rownames(NA_merFISH)
@@ -55,17 +53,17 @@ g = ggplot2::ggplot(SVGs_infer, aes(pct.expr, -log10(p.value), gene = gene, colo
 plotly::ggplotly(g)
 
 # cluster genes based on spatial expression pattern
-gene_cluster = cluster_spatial_expr_pattern(NA_merFISH_iSpatial, "enhanced", 
-                             feature = SVGs_infer_sig$gene, n.cluster = 20,
-                             ncol.plot = 4, bin = 20, n.core = 10)
+gene_cluster = suppressWarnings(cluster_spatial_expr_pattern(NA_merFISH_iSpatial, "enhanced", 
+                             feature = SVGs_infer_sig$gene, n.cluster = 12,
+                             ncol.plot = 3, bin = 20, n.core = 10))
 
-# genes in cluster 6
-names(gene_cluster[gene_cluster==6])
+# genes in cluster 7
+names(gene_cluster[gene_cluster==7])
 
 # plot
 spatial_signature_plot(NA_merFISH_iSpatial, 
-                       gene.set = names(gene_cluster[gene_cluster==6]),
-                       set.name = "Class 6")
+                       gene.set = names(gene_cluster[gene_cluster==7]),
+                       set.name = "Class 7")
 
 ```
 
