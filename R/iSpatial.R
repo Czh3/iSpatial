@@ -242,7 +242,7 @@ iSpatial = function(
         cor_dist = cor_dist/sum(cor_dist) 
         # inner produce
         infer_expr = integrated@assays$RNA@data[, c(cell, cell_neighbors)] %*% cor_dist 
-        infer_expr[,1]
+        infer_expr[,1] / length(cell_neighbors)
       }
     }, mc.cores = n.core)
   }else{
