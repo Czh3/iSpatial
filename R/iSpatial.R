@@ -237,12 +237,12 @@ iSpatial = function(
         cor_dist = sparse.cor(integrated@assays$RNA@data[genes_select, c(cell, cell_neighbors)])[,1]
         cor_dist[is.na(cor_dist)] <- 0 
         cor_dist[cor_dist < 0] <- 0
-        #cor_dist = cor_dist**3
+        cor_dist = cor_dist**3
         # normalized correlation distance matrix
         cor_dist = cor_dist/sum(cor_dist) 
         # inner produce
         infer_expr = integrated@assays$RNA@data[, c(cell, cell_neighbors)] %*% cor_dist 
-        infer_expr[,1] / length(cell_neighbors)
+        infer_expr[,1] 
       }
     }, mc.cores = n.core)
   }else{
