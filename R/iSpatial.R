@@ -196,7 +196,7 @@ iSpatial = function(
   gc()
   
   # check normalization
-  #avg_expr = AverageExpression(integrated, group.by="tech", slot="data")
+  #avg_expr = Seurat::AverageExpression(integrated, group.by="tech", slot="data")
   #boxplot(log1p(avg_expr$RNA[genes_select, ]))
   
   # global level integration
@@ -237,9 +237,10 @@ iSpatial = function(
         cor_dist = sparse.cor(integrated@assays$RNA@data[genes_select, c(cell, cell_neighbors)])[,1]
         cor_dist[is.na(cor_dist)] <- 0 
         cor_dist[cor_dist < 0] <- 0
-        cor_dist = cor_dist**3
+        # cor_dist = cor_dist**3
         # normalized correlation distance matrix
-        cor_dist = cor_dist/sum(cor_dist) 
+        cor_dist = cor_dist/sum(cor_dist)
+        cor_dist = c(cor_dist[1], cor_dist[-1]/sum(cor_dist[-1]))
         # inner produce
         infer_expr = integrated@assays$RNA@data[, c(cell, cell_neighbors)] %*% cor_dist 
         infer_expr[,1] 
