@@ -239,7 +239,6 @@ iSpatial = function(
         cor_dist[cor_dist < 0] <- 0
         # cor_dist = cor_dist**3
         # normalized correlation distance matrix
-        cor_dist = cor_dist/sum(cor_dist)
         cor_dist = c(cor_dist[1], cor_dist[-1]/sum(cor_dist[-1]))
         # inner produce
         infer_expr = integrated@assays$RNA@data[, c(cell, cell_neighbors)] %*% cor_dist 
