@@ -237,7 +237,7 @@ iSpatial = function(
         cor_dist = sparse.cor(integrated@assays$RNA@data[genes_select, c(cell, cell_neighbors)])[,1]
         cor_dist[is.na(cor_dist)] <- 0 
         cor_dist[cor_dist < 0] <- 0
-        cor_dist = cor_dist**3
+        #cor_dist = cor_dist**3
         # normalized correlation distance matrix
         cor_dist = cor_dist/sum(cor_dist) 
         # inner produce
@@ -268,17 +268,13 @@ iSpatial = function(
   DefaultAssay(integrated_merFISH) <- infered.assay
   
   # add spatial information
-  coord.df = spRNA@images$image@coordinates
-  integrated_merFISH@images$image =  new(
-    Class = 'SlideSeq',
-    assay = infered.assay,
-    key = "image_",
-    coordinates = coord.df
-  )
-  
-  # remove NA gene
-  #integrated_merFISH = integrated_merFISH[!is.na(rowSums(integrated_merFISH[[infered.assay]]@data)),]
-  
+  integrated_merFISH@images = spRNA@images
+
+  for(img in names(integrated_merFISH@images)){
+    integrated_merFISH@images[[img]]@coordinates <- integrated_merFISH@images[[img]]@coordinates[
+        rownames(integrated_merFISH@images[[img]]@coordinates) %in% colnames(integrated_merFISH), ]
+  }
+
   return(integrated_merFISH)
 }
 
