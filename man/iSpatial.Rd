@@ -10,7 +10,8 @@ iSpatial(
   dims = 1:30,
   k.neighbor = 30,
   infered.assay = "enhanced",
-  RNA.weight = NA,
+  weighted.KNN = True,
+  RNA.weight = 0.3,
   n.core = 10,
   correct.spRNA = TRUE,
   correct.scRNA = FALSE,
@@ -28,11 +29,13 @@ iSpatial(
 
 \item{infered.assay}{names of output assay in seurat object}
 
+\item{weighted.KNN}{we use a dynamics weight to assign scRNA values to spRNA.
+The dynamics weight based on the correlation between scRNA cell and spRNA
+cell.}
+
 \item{RNA.weight}{the weight of scRNA-seq expression when genes detected both
-in spRNA and scRNA. When choose defaulted "NA", we use a dynamics weight
-to assign scRNA values to spRNA. The dynamics weight based on the correlation
-between scRNA cell and spRNA cell. If a RNA.weight (from 0 to 1) were given,
-the inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.}
+in spRNA and scRNA. RNA.weight should be 0 to 1.
+The inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.}
 
 \item{n.core}{number of CPU cores used to parallel.}
 

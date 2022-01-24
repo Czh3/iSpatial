@@ -107,11 +107,12 @@ sparse.cor <- function(x){
 #' @param dims which dimensions to use when find the nearest neighbors
 #' @param k.neighbor number of neighbors to use when infer the expression
 #' @param infered.assay names of output assay in seurat object
+#' @param weighted.KNN we use a dynamics weight to assign scRNA values to spRNA.
+#' The dynamics weight based on the correlation between scRNA cell and spRNA 
+#' cell. 
 #' @param RNA.weight the weight of scRNA-seq expression when genes detected both
-#' in spRNA and scRNA. When choose defaulted "NA", we use a dynamics weight
-#' to assign scRNA values to spRNA. The dynamics weight based on the correlation
-#' between scRNA cell and spRNA cell. If a RNA.weight (from 0 to 1) were given,
-#' the inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.
+#' in spRNA and scRNA. RNA.weight should be 0 to 1.
+#' The inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.
 #' @param n.core number of CPU cores used to parallel.
 #' @param correct.scRNA Whether to stabilize expression in scRNA.
 #' @param correct.spRNA Whether to stabilize expression in spRNA.
@@ -128,7 +129,8 @@ iSpatial = function(
   dims = 1:30,
   k.neighbor = 30,
   infered.assay = "enhanced",
-  RNA.weight = NA,
+  weighted.KNN = True,
+  RNA.weight = 0.3,
   n.core = 10,
   correct.spRNA = TRUE,
   correct.scRNA = FALSE,
@@ -227,7 +229,7 @@ iSpatial = function(
   
   # infer expression via scRNA
   message("infer expression.")
-  if(is.na(RNA.weight)){
+  if(weighted.KNN){
     # dynamics proportion to assign scRNA values to merFISH
     enhancer_expr = parallel::mclapply(colnames(enhancer_expr), function(cell){
       cell_neighbors = neigbors[[cell]]
@@ -237,9 +239,11 @@ iSpatial = function(
         cor_dist = sparse.cor(integrated@assays$RNA@data[genes_select, c(cell, cell_neighbors)])[,1]
         cor_dist[is.na(cor_dist)] <- 0 
         cor_dist[cor_dist < 0] <- 0
-        # cor_dist = cor_dist**3
+        cor_dist = cor_dist ** 3 
         # normalized correlation distance matrix
-        cor_dist = c(cor_dist[1], cor_dist[-1]/sum(cor_dist[-1]))
+        cor_dist = cor_dist / sum(cor_dist)
+        cor_dist = c((1-RNA.weight) * cor_dist[1], RNA.weight * cor_dist[-1]) # cor_dist[1] is the cell in spRNA, here = 1
+        
         # inner produce
         infer_expr = integrated@assays$RNA@data[, c(cell, cell_neighbors)] %*% cor_dist 
         infer_expr[,1] 

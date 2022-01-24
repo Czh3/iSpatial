@@ -12,7 +12,7 @@ spatial_signature_plot(
   pt.size.factor = 2,
   alpha = 0.5,
   color.scale = c("gray95", "gray80", "pink", "orange", "red", "red4"),
-  max.cutoff = NA,
+  quantile.cutoff = 0.95,
   legend = FALSE
 )
 }
@@ -32,8 +32,9 @@ spatial_signature_plot(
 \item{color.scale}{set the color scale. Default:
 c("gray95", "gray80", "pink", "orange", "red", "red4")}
 
-\item{max.cutoff}{set max of the expression value.
-Default:  0.99\% of the max.}
+\item{quantile.cutoff}{0 to 1.
+Set the quantile of expression of the max value.
+Default:  0.95\% of the max.}
 
 \item{legend}{whether to plot the legend}
 }
