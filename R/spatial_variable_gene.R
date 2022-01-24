@@ -208,8 +208,9 @@ cluster_spatial_expr_pattern <- function(obj,
 #' @param alpha transparency of the points
 #' @param color.scale set the color scale. Default:
 #' c("gray95", "gray80", "pink", "orange", "red", "red4")
-#' @param max.cutoff set max of the expression value. 
-#' Default:  0.99% of the max.
+#' @param quantile.cutoff 0 to 1.
+#' Set the quantile of expression of the max value. 
+#' Default:  0.95% of the max.
 #' @param legend whether to plot the legend
 #' 
 #' @return ggplot object
@@ -224,10 +225,10 @@ spatial_signature_plot = function(object,
                                   pt.size.factor = 2,
                                   alpha = 0.5,
                                   color.scale = c("gray95", "gray80", "pink", "orange", "red", "red4"),
-                                  max.cutoff = NA, 
+                                  quantile.cutoff = 0.95, 
                                   legend = FALSE){
   
-  gene.set = gene.set[gene.set %in% rownames(object)]
+  gene.set = gene.set[gene.set %in% rownames(object[[assay]]@data)]
   if(length(gene.set) == 1){
     mean.exp <- object[[assay]]@data[gene.set, ]
   } else{
@@ -238,17 +239,17 @@ spatial_signature_plot = function(object,
   object@meta.data[gene.set.name] <- mean.exp
   
   
-  if(is.na(max.cutoff)){
-    max.cutoff = quantile(mean.exp, prob = 0.99, na.rm=T)
-  }
+  
+  max.cutoff = quantile(mean.exp, prob = quantile.cutoff, na.rm=T)
+  
   
   if(legend){
-    Seurat::SpatialFeaturePlot(object, features = gene.set.name, pt.size.factor=pt.size.factor, stroke=NA,  alpha = alpha,
+    SpatialFeaturePlot(object, features = gene.set.name, pt.size.factor=pt.size.factor, stroke=NA,  alpha = alpha,
                        slot="data", max.cutoff = max.cutoff) +
       theme(legend.position = "right") +
       scale_fill_gradientn(colours = color.scale) 
   }else{
-    Seurat::SpatialFeaturePlot(object, features = gene.set.name, pt.size.factor=pt.size.factor, stroke=NA,  alpha = alpha,
+    SpatialFeaturePlot(object, features = gene.set.name, pt.size.factor=pt.size.factor, stroke=NA,  alpha = alpha,
                        slot="data", max.cutoff = max.cutoff) +
       theme(legend.position = "none",
             plot.title = element_text(hjust = 0.5)) +
