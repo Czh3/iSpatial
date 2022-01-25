@@ -30,10 +30,7 @@ spatial_var_gene_slice <- function(obj, assay, img, bin, n.core = 1){
   
   obj_random = obj[rownames(obj_expr), ]
   set.seed(3)
-  obj_random@meta.data$x = sample(obj@meta.data$x)
-  set.seed(3)
-  obj_random@meta.data$y = sample(obj@meta.data$y)
-  obj_random@meta.data$xy = paste(obj_random@meta.data$x, obj_random@meta.data$y)
+  obj_random@meta.data$xy = sample(obj@meta.data$xy)
   
   obj_random_expr = Seurat::AverageExpression(obj_random, group.by = "xy", assays = assay)[[1]]
   
