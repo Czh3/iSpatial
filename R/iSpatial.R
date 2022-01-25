@@ -129,7 +129,7 @@ iSpatial = function(
   dims = 1:30,
   k.neighbor = 30,
   infered.assay = "enhanced",
-  weighted.KNN = True,
+  weighted.KNN = TRUE,
   RNA.weight = 0.3,
   n.core = 10,
   correct.spRNA = TRUE,
@@ -239,7 +239,7 @@ iSpatial = function(
         cor_dist = sparse.cor(integrated@assays$RNA@data[genes_select, c(cell, cell_neighbors)])[,1]
         cor_dist[is.na(cor_dist)] <- 0 
         cor_dist[cor_dist < 0] <- 0
-        cor_dist = cor_dist ** 3 
+        cor_dist = cor_dist ** 2
         # normalized correlation distance matrix
         cor_dist = cor_dist / sum(cor_dist)
         cor_dist = c((1-RNA.weight) * cor_dist[1], RNA.weight * cor_dist[-1]) # cor_dist[1] is the cell in spRNA, here = 1
