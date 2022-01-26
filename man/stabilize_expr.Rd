@@ -4,7 +4,7 @@
 \alias{stabilize_expr}
 \title{stabilize expression}
 \usage{
-stabilize_expr(obj, neighbor = 5, npcs = 10, n.core = 10)
+stabilize_expr(obj, neighbor = 3, npcs = 10, n.core = 10)
 }
 \arguments{
 \item{obj}{seurat object}

@@ -10,12 +10,12 @@ iSpatial(
   dims = 1:30,
   k.neighbor = 30,
   infered.assay = "enhanced",
-  weighted.KNN = True,
+  weighted.KNN = TRUE,
   RNA.weight = 0.3,
   n.core = 10,
   correct.spRNA = TRUE,
   correct.scRNA = FALSE,
-  correct.neighbor = 5
+  correct.neighbor = 3
 )
 }
 \arguments{

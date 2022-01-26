@@ -50,24 +50,27 @@ run_harmony = function(seurat_obj, genes_select){
 #' @export
 #' 
 #' 
-stabilize_expr = function(obj, neighbor = 5, npcs = 10, n.core = 10){
+stabilize_expr = function(obj, neighbor = 3, npcs = 10, n.core = 10){
+  
+  neighbor = neighbor + 1 # include cell itself
+
   obj = Seurat::FindVariableFeatures(obj, selection.method = "vst", verbose = FALSE) 
   obj = Seurat::ScaleData(obj, verbose = FALSE)
   obj = Seurat::RunPCA(obj, npcs = npcs, verbose = FALSE)
   obj = suppressMessages(Seurat::FindNeighbors(obj, return.neighbor = T, k.param = neighbor, verbose = FALSE))
   
   # imputation expr value by KNN
-  enhancer_expr = obj@assays$RNA@data
-  enhancer_expr = parallel::mclapply(colnames(enhancer_expr), function(cell){
+  enhancer_expr_tmp = expm1(obj@assays$RNA@data)
+  enhancer_expr = parallel::mclapply(colnames(obj), function(cell){
     cell_neighbors = Seurat::TopNeighbors(obj@neighbors$RNA.nn, cell, n=neighbor)
-    0.5 * matrixStats::rowMedians(as.matrix(obj@assays$RNA@data[,cell_neighbors[-1]])) + 0.5 * obj@assays$RNA@data[,cell_neighbors[1]]
+    0.5 * matrixStats::rowMedians(as.matrix(enhancer_expr_tmp[,cell_neighbors[-1]])) + 0.5 * enhancer_expr_tmp[,cell_neighbors[1]]
     #Matrix::rowMeans(obj@assays$RNA@data[,cell_neighbors])
   }, mc.cores = n.core)
   enhancer_expr = do.call(cbind, enhancer_expr)
   colnames(enhancer_expr) = colnames(obj)
   rownames(enhancer_expr) = rownames(obj)
-  obj@assays$RNA@data = as(enhancer_expr, "dgCMatrix")
-  rm(enhancer_expr)
+  obj@assays$RNA@data = as(log1p(enhancer_expr), "dgCMatrix")
+  rm(enhancer_expr, enhancer_expr_tmp)
   gc()
   return(obj)
 }
@@ -134,7 +137,7 @@ iSpatial = function(
   n.core = 10,
   correct.spRNA = TRUE,
   correct.scRNA = FALSE,
-  correct.neighbor = 5
+  correct.neighbor = 3
 ){
   spRNA$tech = "spatial"
   scRNA$tech = "scRNA"
@@ -178,13 +181,19 @@ iSpatial = function(
   # count level normalization
   message("normalization.")
   norm_data = expm1(integrated@assays$RNA@data)
-  trim_quantil = Matrix::rowMeans(norm_data[genes_select, ])
+  
   
   # trim high expression gene, which affect the mean of genes
-  trim_quantil = trim_quantil[trim_quantil < quantile(trim_quantil, prob = 0.95) ] 
+  trim_quantil1 = Matrix::rowMeans(scRNA@assays$RNA@data[genes_select, ])
+  trim_quantil1 = trim_quantil1[trim_quantil1 < quantile(trim_quantil1, prob = 0.98) ] 
+  
+  trim_quantil2 = Matrix::rowMeans(spRNA@assays$RNA@data[genes_select, ])
+  trim_quantil2 = trim_quantil2[trim_quantil2 < quantile(trim_quantil2, prob = 0.98) ] 
+  
+  trim_genes = unique(c(names(trim_quantil1), names(trim_quantil2)))
   
   # normalize factor based on trimmed genes
-  norm_factor = Matrix::colMeans(norm_data[names(trim_quantil), ]) 
+  norm_factor = Matrix::colMeans(norm_data[trim_genes, ]) 
   norm_factor = as.numeric(norm_factor)
   norm_factor = norm_factor/mean(norm_factor)
   
@@ -288,65 +297,122 @@ iSpatial_Hierarchy = function(
   spRNA,
   scRNA, 
   dims = 1:30,
-  n.core = 10,
-  RNA.weight = 0.3,
+  k.neighbor = 30,
   cluster.resolution = 0.1,
-  infered.assay = "enhanced"
+  infered.assay = "enhanced",
+  weighted.KNN = TRUE,
+  RNA.weight = 0.3,
+  n.core = 10,
+  correct.spRNA = TRUE,
+  correct.scRNA = FALSE,
+  correct.neighbor = 3
 ){
   spRNA$tech = "spatial"
   scRNA$tech = "scRNA"
   
+  if(is.null(spRNA@assays$RNA)){
+    stop(paste(spRNA, " do not have 'RNA' assay."))
+  }
+  
+  if(is.null(scRNA@assays$RNA)){
+    stop(paste(scRNA, " do not have 'RNA' assay."))
+  }
+  
+  if(length(spRNA@assays$RNA@data) == 0){
+    stop(paste(spRNA, " is not normlized. Run Seurat::NormalizeData."))
+  }
+  
+  if(length(scRNA@assays$RNA@data) == 0){
+    stop(paste(scRNA, " is not normlized. Run Seurat::NormalizeData."))
+  }
+  
+  if(correct.spRNA){
+    message("Stablize spatial transcriptome.")
+    spRNA = stabilize_expr(spRNA, neighbor = correct.neighbor, n.core = n.core, npcs = length(dims))
+  }
+  
+  if(correct.scRNA){
+    message("Stablize single cell RNAseq.")
+    scRNA = stabilize_expr(scRNA, neighbor = correct.neighbor, n.core = n.core, npcs = length(dims))
+  }
+  
   genes_select = intersect(rownames(scRNA), rownames(spRNA))
   
+  if(length(genes_select) < 10){
+    stop("Too few intesected genes between scRNA and spRNA.")
+  }
+  
+  # merge two objects
+  message("integrating.")
   integrated = merge(scRNA, spRNA)
   
   # count level normalization
-  norm_data = integrated@assays$RNA@counts
-  trim_quantil = rowMeans(norm_data[genes_select, ])
-  trim_quantil = trim_quantil[trim_quantil < quantile(trim_quantil, prob = 0.95) ] # trim high expression gene, which affect the mean of genes
+  message("normalization.")
+  norm_data = expm1(integrated@assays$RNA@data)
+  trim_quantil = Matrix::rowMeans(norm_data[genes_select, ])
   
-  norm_factor = Matrix::colMeans(norm_data[names(trim_quantil), ]) # based on trimmed genes
+  # trim high expression gene, which affect the mean of genes
+  trim_quantil = trim_quantil[trim_quantil < quantile(trim_quantil, prob = 0.95) ] 
+  
+  # normalize factor based on trimmed genes
+  norm_factor = Matrix::colMeans(norm_data[names(trim_quantil), ]) 
   norm_factor = as.numeric(norm_factor)
+  norm_factor = norm_factor/mean(norm_factor)
   
   norm_data@x <- norm_data@x / rep.int(norm_factor, diff(norm_data@p))
   integrated@assays$RNA@data = log1p(norm_data)
   
-  # remove cell with number of expressed gene < 95% total
+  # remove cell with number of expressed gene < 95%
   integrated = integrated[, norm_factor != 0]
   
   rm(norm_data, norm_factor)
   gc()
   
   # check normalization
-  #avg_expr = AverageExpression(integrated, group.by="tech", slot="data")
+  #avg_expr = Seurat::AverageExpression(integrated, group.by="tech", slot="data")
   #boxplot(log1p(avg_expr$RNA[genes_select, ]))
   
   # global level integration
-  integrated = run_harmony(integrated, genes_select)
   
-  # cluster
-  integrated <- FindNeighbors(integrated, reduction="harmony")
-  integrated <- FindClusters(integrated, resolution = cluster.resolution)
-  
-  #DimPlot(integrated, reduction="umap", group.by = "seurat_clusters", raster=FALSE) & NoAxes() 
-  
-  integrated_cluster = SplitObject(integrated, split.by = "seurat_clusters")
+  integrated = suppressWarnings(run_harmony(integrated, genes_select))
   
 
-  doParallel::registerDoParallel(n.core)
+  # cluster
+  integrated <- Seurat::FindNeighbors(integrated, reduction="harmony")
+  integrated <- Seurat::FindClusters(integrated, resolution = cluster.resolution)
   
-  neigbors = foreach::foreach(obj = integrated_cluster, .combine = cbind) %dopar%  {
+
+  integrated_cluster = Seurat::SplitObject(integrated, split.by = "seurat_clusters")
+  
+
+    #doParallel::registerDoParallel(n.core)
+    #neigbors = foreach::foreach(obj = integrated_cluster, .combine = cbind) foreach::`%dopar%` {
+    #  # cluster level integration
+    #  obj = suppressWarnings(run_harmony(obj, genes_select))
+    #  # find neighbor
+    #  obj = Seurat::FindNeighbors(obj, k.param = k.neighbor, reduction="harmony", dims=dims, return.neighbor = T)
+    #  res = sapply(colnames(subset(obj, subset = tech == "scRNA", invert = TRUE)), function(i){
+    #    Seurat::TopNeighbors(obj@neighbors$RNA.nn, i, n = k.neighbor)
+    #  })
+    #  res
+    #}
+    #neigbors = as.data.frame(neigbors)
+    #doParallel::stopImplicitCluster()  }
+  
+  
+  neigbors = parallel::mclapply(integrated_cluster, function(obj){
     # cluster level integration
-    obj = run_harmony(obj, genes_select)
+    obj = suppressWarnings(run_harmony(obj, genes_select))
     # find neighbor
-    obj = FindNeighbors(obj, k.param = 20, reduction="harmony", dims=dims, return.neighbor = T)
+    obj = Seurat::FindNeighbors(obj, k.param = k.neighbor, reduction="harmony", dims=dims, return.neighbor = T)
     res = sapply(colnames(subset(obj, subset = tech == "scRNA", invert = TRUE)), function(i){
-      TopNeighbors(obj@neighbors$RNA.nn, i, n=20)
+      Seurat::TopNeighbors(obj@neighbors$RNA.nn, i, n = k.neighbor)
     })
     res
-  }
+  }, mc.cores = n.core)
+  neigbors = do.call(cbind, neigbors)
   neigbors = as.data.frame(neigbors)
-  doParallel::stopImplicitCluster()
+  
   
   integrated_scRNA = subset(integrated, subset = tech == "scRNA")
   integrated_merFISH = subset(integrated, subset = tech == "scRNA", invert = TRUE)
@@ -360,33 +426,58 @@ iSpatial_Hierarchy = function(
   enhancer_expr = integrated_merFISH@assays$RNA@data
   
   # infer expression via scRNA
-  enhancer_expr = parallel::mclapply(colnames(enhancer_expr), function(cell){
-    cell_neighbors = neigbors[[cell]]
-    if (length(cell_neighbors) == 0){
-      enhancer_expr[, cell]
-    }else if (length(cell_neighbors) == 1){
-      (1-RNA.weight) * enhancer_expr[, cell] + RNA.weight * integrated_scRNA@assays$RNA@data[,cell_neighbors]
-    }else{
-      (1-RNA.weight) * enhancer_expr[, cell] + RNA.weight * rowMeans(integrated_scRNA@assays$RNA@data[,cell_neighbors])
-    }
-  }, mc.cores = n.core)
+  message("infer expression.")
+  if(weighted.KNN){
+    # dynamics proportion to assign scRNA values to merFISH
+    enhancer_expr = parallel::mclapply(colnames(enhancer_expr), function(cell){
+      cell_neighbors = neigbors[[cell]]
+      if (length(cell_neighbors) == 0){
+        integrated@assays$RNA@data[, cell]
+      }else{
+        cor_dist = sparse.cor(integrated@assays$RNA@data[genes_select, c(cell, cell_neighbors)])[,1]
+        cor_dist[is.na(cor_dist)] <- 0 
+        cor_dist[cor_dist < 0] <- 0
+        cor_dist = cor_dist ** 2
+        # normalized correlation distance matrix
+        cor_dist = cor_dist / sum(cor_dist)
+        cor_dist = c((1-RNA.weight) * cor_dist[1], RNA.weight * cor_dist[-1]) # cor_dist[1] is the cell in spRNA, here = 1
+        
+        # inner produce
+        infer_expr = integrated@assays$RNA@data[, c(cell, cell_neighbors)] %*% cor_dist 
+        infer_expr[,1] 
+      }
+    }, mc.cores = n.core)
+  }else{
+    # constant proportion to assign scRNA values to merFISH
+    enhancer_expr = parallel::mclapply(colnames(enhancer_expr), function(cell){
+      cell_neighbors = neigbors[[cell]]
+      if (length(cell_neighbors) == 0){
+        enhancer_expr[, cell]
+      }else if (length(cell_neighbors) == 1){
+        (1-RNA.weight) * enhancer_expr[, cell] + RNA.weight * integrated_scRNA@assays$RNA@data[,cell_neighbors]
+      }else{
+        (1-RNA.weight) * enhancer_expr[, cell] + RNA.weight * Matrix::rowMeans(integrated_scRNA@assays$RNA@data[,cell_neighbors])
+      }
+    }, mc.cores = n.core)
+  }
+  
   enhancer_expr = do.call(cbind, enhancer_expr)
   colnames(enhancer_expr) = colnames(integrated_merFISH)
   
   # assign inferred expression value to new assay
-  integrated_merFISH[[infered.assay]] = CreateAssayObject(data = as(enhancer_expr, "dgCMatrix"))
+  integrated_merFISH[[infered.assay]] = SeuratObject::CreateAssayObject(data = as(enhancer_expr, "dgCMatrix"))
   
   DefaultAssay(integrated_merFISH) <- infered.assay
   
   # add spatial information
-  coord.df = spRNA@images$image@coordinates
-  integrated_merFISH@images$image =  new(
-    Class = 'SlideSeq',
-    assay = infered.assay,
-    key = "image_",
-    coordinates = coord.df
-  )
+  integrated_merFISH@images = spRNA@images
+  
+  for(img in names(integrated_merFISH@images)){
+    integrated_merFISH@images[[img]]@coordinates <- integrated_merFISH@images[[img]]@coordinates[
+      rownames(integrated_merFISH@images[[img]]@coordinates) %in% colnames(integrated_merFISH), ]
+  }
   
   return(integrated_merFISH)
+  
 }
 

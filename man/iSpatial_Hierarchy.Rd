@@ -8,10 +8,15 @@ iSpatial_Hierarchy(
   spRNA,
   scRNA,
   dims = 1:30,
-  n.core = 10,
-  RNA.weight = 0.3,
+  k.neighbor = 30,
   cluster.resolution = 0.1,
-  infered.assay = "enhanced"
+  infered.assay = "enhanced",
+  weighted.KNN = TRUE,
+  RNA.weight = 0.3,
+  n.core = 10,
+  correct.spRNA = TRUE,
+  correct.scRNA = FALSE,
+  correct.neighbor = 3
 )
 }
 \description{
