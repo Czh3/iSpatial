@@ -20,7 +20,7 @@ NULL
 #' 
 run_harmony = function(seurat_obj, genes_select, npc = 20){
   SeuratObject::VariableFeatures(seurat_obj) = genes_select
-  seurat_obj = Seurat::ScaleData(seurat_obj, features = genes_select, verbose = FALSE)
+  seurat_obj = Seurat::ScaleData(seurat_obj, features = genes_select, vars.to.regress = "tech", verbose = FALSE)
   seurat_obj = Seurat::RunPCA(seurat_obj, npcs = npc, features = genes_select, verbose = FALSE)
   
   # harmony
