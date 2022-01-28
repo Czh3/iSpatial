@@ -11,6 +11,7 @@ spatial_cor(
   assay2,
   feature = NA,
   bin = 20,
+  cor.method = "pearson",
   n.core = 10,
   n.sample = 300
 )
@@ -27,6 +28,10 @@ spatial_cor(
 \item{feature}{select features to calulate}
 
 \item{bin}{number of bins used to segregate the image}
+
+\item{cor.method}{method use for correlation}
+
+\item{n.core}{number of cores to use}
 
 \item{n.sample}{how many times for sampling regions}
 }

@@ -11,6 +11,7 @@ cluster_spatial_expr_pattern(
   bin = 20,
   n.cluster = 12,
   cluster.method = "ward.D2",
+  cor.method = "pearson",
   ncol.plot = 4,
   n.core = 1
 )
@@ -27,6 +28,8 @@ cluster_spatial_expr_pattern(
 \item{n.cluster}{number of clusters}
 
 \item{cluster.method}{hclust method}
+
+\item{cor.method}{correlation method}
 
 \item{ncol.plot}{number of columns for plotting}
 

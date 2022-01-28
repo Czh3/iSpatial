@@ -158,6 +158,7 @@ get_spatial_features <- function(obj, assay, feature, bin, n.core = 1){
 #' @param bin number of bins used to segregate the image
 #' @param n.cluster number of clusters
 #' @param cluster.method hclust method
+#' @param cor.method correlation method
 #' @param ncol.plot number of columns for plotting
 #' @param n.core number of CPU cores used
 #' 
@@ -172,13 +173,14 @@ cluster_spatial_expr_pattern <- function(obj,
                                          bin = 20, 
                                          n.cluster = 12, 
                                          cluster.method = "ward.D2",
+                                         cor.method = "pearson",
                                          ncol.plot = 4, 
                                          n.core = 1){
   spatial_feature = get_spatial_features(obj, assay, feature, bin, n.core = n.core)
   
-  SVG_cor = cor(t(spatial_feature))
+  SVG_cor = cor(t(spatial_feature), method = cor.method)
   
-  h = hclust(as.dist(1-SVG_cor), method = "ward.D2")
+  h = hclust(as.dist(1-SVG_cor), method = cluster.method)
   
   SVG_cluster = cutree(h, k=n.cluster)
   message("Number of genes in each cluster:")
@@ -188,7 +190,7 @@ cluster_spatial_expr_pattern <- function(obj,
       suppressMessages(spatial_signature_plot(obj, assay, names(SVG_cluster[SVG_cluster==x]), paste("C", as.character(x))))
   })
   
-  gridExtra::grid.arrange(grobs = plots, ncol = 4)
+  gridExtra::grid.arrange(grobs = plots, ncol = ncol.plot)
   
   return(SVG_cluster)
 }
@@ -221,7 +223,7 @@ spatial_signature_plot = function(object,
                                   set.name, 
                                   pt.size.factor = 2,
                                   alpha = 0.5,
-                                  color.scale = c("gray95", "gray80", "pink", "orange", "red", "red4"),
+                                  color.scale = c("gray95", "gray80", "wheat", "pink", "orange", "red", "red4"),
                                   quantile.cutoff = 0.95, 
                                   legend = FALSE){
   

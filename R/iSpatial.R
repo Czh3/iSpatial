@@ -15,22 +15,23 @@ NULL
 #' 
 #' @param seurat_obj merged seurat object
 #' @param genes_select genes used to integration, usually targeted genes.
+#' @param npc number of PC
 #' @return seurat object
 #' 
-run_harmony = function(seurat_obj, genes_select){
+run_harmony = function(seurat_obj, genes_select, npc = 20){
   SeuratObject::VariableFeatures(seurat_obj) = genes_select
   seurat_obj = Seurat::ScaleData(seurat_obj, features = genes_select, verbose = FALSE)
-  seurat_obj = Seurat::RunPCA(seurat_obj, npcs = 30, features = genes_select, verbose = FALSE)
+  seurat_obj = Seurat::RunPCA(seurat_obj, npcs = npc, features = genes_select, verbose = FALSE)
   
   # harmony
   seurat_obj <- harmony::RunHarmony(
     object = seurat_obj,
     group.by.vars = 'tech',
     plot_convergence = F,
-    theta = 3,
-    lambda = 0.1,
+    theta = 2,
+    lambda = 0.5,
     verbose = FALSE,
-    max.iter.harmony = 15
+    max.iter.harmony = 20
   )
   return(seurat_obj)
 }
@@ -212,7 +213,7 @@ iSpatial = function(
   
   # global level integration
   
-  integrated = suppressWarnings(run_harmony(integrated, genes_select))
+  integrated = suppressWarnings(run_harmony(integrated, genes_select, npc = length(dims)))
   
   # find neighbors
   integrated = Seurat::FindNeighbors(integrated, k.param = k.neighbor, reduction="harmony", dims=dims, return.neighbor = T)
@@ -374,7 +375,7 @@ iSpatial_Hierarchy = function(
   
   # global level integration
   
-  integrated = suppressWarnings(run_harmony(integrated, genes_select))
+  integrated = suppressWarnings(run_harmony(integrated, genes_select, npc = length(dims)))
   
 
   # cluster
@@ -402,7 +403,7 @@ iSpatial_Hierarchy = function(
   
   neigbors = parallel::mclapply(integrated_cluster, function(obj){
     # cluster level integration
-    obj = suppressWarnings(run_harmony(obj, genes_select))
+    obj = suppressWarnings(run_harmony(obj, genes_select, npc = length(dims)))
     # find neighbor
     obj = Seurat::FindNeighbors(obj, k.param = k.neighbor, reduction="harmony", dims=dims, return.neighbor = T)
     res = sapply(colnames(subset(obj, subset = tech == "scRNA", invert = TRUE)), function(i){

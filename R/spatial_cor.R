@@ -10,6 +10,8 @@
 #' @param assay2 choose assay for obj2
 #' @param feature select features to calulate 
 #' @param bin number of bins used to segregate the image
+#' @param cor.method method use for correlation
+#' @param n.core number of cores to use
 #' @param n.sample how many times for sampling regions
 #'
 #' @return Spatial expression correlation of each gene 
@@ -22,10 +24,11 @@ spatial_cor = function(obj1,
                        assay2, 
                        feature = NA,
                        bin = 20,
+                       cor.method = "pearson",
                        n.core = 10,
                        n.sample = 300){
 
-  if(is.na(feature)){
+  if(is.na(feature[1])){
     feature = Seurat::AverageExpression(obj1)[[1]]
     feature = names(feature[feature[,1] > 0, ])
   }
@@ -33,10 +36,15 @@ spatial_cor = function(obj1,
   cor_bin = parallel::mclapply(1:300, function(x) {
     cells = sample_region(obj1)
     if(length(cells) > 2){
-      cbind(
-        Matrix::rowMeans((obj1[[assay1]]@data[feature, cells]), na.rm = T),
-        Matrix::rowMeans((obj2[[assay2]]@data[feature, cells]), na.rm = T)
-      )
+      if(length(feature) > 1){
+        cbind(
+          Matrix::rowMeans((obj1[[assay1]]@data[feature, cells]), na.rm = T),
+          Matrix::rowMeans((obj2[[assay2]]@data[feature, cells]), na.rm = T)
+        )
+      } else {
+        cbind(mean(obj1[[assay1]]@data[feature, cells]), mean(obj2[[assay2]]@data[feature, cells]))
+      }
+      
     }
   }, mc.cores = n.core)
   
@@ -44,7 +52,7 @@ spatial_cor = function(obj1,
   
   apply(cor_bin, 1, function(x){
     cor(x[seq(1, length(x), by=2)],
-        x[seq(2, length(x), by=2)])
+        x[seq(2, length(x), by=2)], method = cor.method)
   })
 
 }

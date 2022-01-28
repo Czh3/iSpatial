@@ -11,7 +11,7 @@ spatial_signature_plot(
   set.name,
   pt.size.factor = 2,
   alpha = 0.5,
-  color.scale = c("gray95", "gray80", "pink", "orange", "red", "red4"),
+  color.scale = c("gray95", "gray80", "wheat", "pink", "orange", "red", "red4"),
   quantile.cutoff = 0.95,
   legend = FALSE
 )

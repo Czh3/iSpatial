@@ -4,12 +4,14 @@
 \alias{run_harmony}
 \title{run harmony integration}
 \usage{
-run_harmony(seurat_obj, genes_select)
+run_harmony(seurat_obj, genes_select, npc = 20)
 }
 \arguments{
 \item{seurat_obj}{merged seurat object}
 
 \item{genes_select}{genes used to integration, usually targeted genes.}
+
+\item{npc}{number of PC}
 }
 \value{
 seurat object
