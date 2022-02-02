@@ -51,13 +51,11 @@ spatial_var_gene_slice <- function(obj, assay, img, bin, n.core = 1){
   SVGs = as.data.frame(SVGs)
   
   # percent cell expressed
-  pct_expr = Matrix::rowSums(obj[[assay]]@data != 0)
   pct_expr = pct_expr/ncol(obj[[assay]]@data)
   
   SVGs$pct_expr = as.numeric(pct_expr[SVGs$V1])
   
   colnames(SVGs) = c("gene", "image", "p.value", "pct.expr")
-  SVGs$padj = p.adjust(SVGs$p.value, method = "BH")
   SVGs
 }
 
@@ -66,8 +64,10 @@ spatial_var_gene_slice <- function(obj, assay, img, bin, n.core = 1){
 #' Bin the images into small chunks. For each gene, detected the numbers of 
 #' expression cells in each chunk, comparing the distribution with random. 
 #' 
-#' @param obj seurat object
-#' @param assay select assay
+#' @param spRNA.obj spatial transcriptome seurat object
+#' @param spRNA.assay spatial transcriptome assay
+#' @param scRNA.obj scRNA-seq seurat object
+#' @param scRNA.assay scRNA-seq seurat assay
 #' @param bin number of bins used to segregate the image
 #' @param n.core number of CPU cores used
 #' 
@@ -76,20 +76,59 @@ spatial_var_gene_slice <- function(obj, assay, img, bin, n.core = 1){
 #' @export
 #' 
 
-spatial_variable_genes = function(obj, assay, bin = 20, n.core = 1){
+spatial_variable_genes = function(spRNA.obj, spRNA.assay = "enhanced", scRNA.obj = NULL, scRNA.assay = "RNA", bin = 20, n.core = 1){
   if(length(obj@images) == 0){
     stop("Check your spatial seurat object, lost image information.")
   }
   
-  images = names(obj@images)
-  SVGs = parallel::mclapply(images, function(img) spatial_var_gene_slice(obj, assay, img, bin, n.core)
+  #spRNA
+  images = names(spRNA.obj@images)
+  SVGs = parallel::mclapply(images, function(img) spatial_var_gene_slice(spRNA.obj, spRNA.assay, img, bin, n.core)
   , mc.cores = n.core)
   SVGs = do.call(rbind, SVGs)
   SVGs = as.data.frame(SVGs)
   SVGs$pct.expr = as.numeric(SVGs$pct.expr)
   SVGs$p.value = as.numeric(SVGs$p.value)
-  rownames(SVGs) = 1:nrow(SVGs)
-  SVGs
+  colnames(SVGs) = c("gene", "image", "spRNA.p.value", "spRNA.pct.expr")
+  
+  if(is.null(scRNA.obj)){
+    SVGs$p.adj = p.adjust(SVGs$spRNA.p.value, method = "BH")
+    return(SVGs)
+  } else {
+    if(!"umap" %in% names(scRNA.obj@reductions)){
+      stop("Please run umap in scRNA-seq data")
+    }
+    # scRNA
+    scRNA.obj = scRNA.obj[rownames(scRNA.obj) %in% rownames(spRNA.obj), ]
+    
+    coord.df = Embeddings(scRNA.obj, reduction="umap")
+    coord.df = as.data.frame(coord.df[,c(2,1)])
+    scRNA.obj@images$image =  new(
+      Class = 'SlideSeq',
+      assay = scRNA.assay,
+      key = "image_",
+      coordinates = coord.df
+    )
+    
+    SVGs_sc = spatial_var_gene_slice(scRNA.obj, scRNA.assay, "image", bin, n.core)
+    SVGs_sc = as.data.frame(SVGs_sc)
+    SVGs_sc$pct.expr = as.numeric(SVGs_sc$pct.expr)
+    SVGs_sc$p.value = as.numeric(SVGs_sc$p.value)
+    SVGs_sc = SVGs_sc[,-2]
+    colnames(SVGs_sc) = c("gene", "scRNA.p.value", "scRNA.pct.expr")
+    
+    #merge
+    SVGs_merge = merge(SVGs, SVGs_sc, by = "gene", all = TRUE)
+    SVGs_merge$spRNA.p.value[is.na(SVGs_merge$spRNA.p.value)] <- 1
+    SVGs_merge$spRNA.pct.expr[is.na(SVGs_merge$spRNA.pct.expr)] <- 0
+    SVGs_merge$scRNA.p.value[is.na(SVGs_merge$scRNA.p.value)] <- 1
+    SVGs_merge$scRNA.pct.expr[is.na(SVGs_merge$scRNA.pct.expr)] <- 0
+    
+    rownames(SVGs_merge) = 1:nrow(SVGs_merge)
+    SVGs_merge$p.value = sqrt(SVGs_merge$spRNA.p.value * SVGs_merge$scRNA.p.value)
+    SVGs_merge$p.adj = p.adjust(SVGs_merge$p.value, method = "BH")
+    SVGs_merge
+  }
 }
 
 #' get spatial expression features in each image
