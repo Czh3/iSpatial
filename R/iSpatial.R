@@ -127,14 +127,14 @@ sparse.cor <- function(x){
 #' @export
 #' 
 
-iSpatial = function(
+infer_v0.1 = function(
   spRNA,
   scRNA, 
   dims = 1:30,
   k.neighbor = 30,
   infered.assay = "enhanced",
   weighted.KNN = TRUE,
-  RNA.weight = 0.3,
+  RNA.weight = 0.5,
   n.core = 10,
   correct.spRNA = TRUE,
   correct.scRNA = FALSE,
@@ -293,14 +293,14 @@ iSpatial = function(
 }
 
 
-iSpatial_v2 = function(
+infer = function(
   spRNA,
   scRNA, 
   dims = 1:30,
   k.neighbor = 30,
   infered.assay = "enhanced",
   weighted.KNN = TRUE,
-  RNA.weight = 0.3,
+  RNA.weight = 0.5,
   n.core = 10,
   correct.spRNA = TRUE,
   correct.scRNA = FALSE,
@@ -344,25 +344,26 @@ iSpatial_v2 = function(
   # run pca
   SeuratObject::VariableFeatures(scRNA) = genes_select
   scRNA = Seurat::ScaleData(scRNA, verbose = FALSE)
-  scRNA = Seurat::RunPCA(scRNA, verbose = FALSE)
+  scRNA = Seurat::RunPCA(scRNA, npcs = length(dims), verbose = FALSE)
   
   SeuratObject::VariableFeatures(spRNA) = genes_select
   spRNA = Seurat::ScaleData(spRNA, verbose = FALSE)
-  spRNA = Seurat::RunPCA(spRNA, verbose = FALSE)
+  spRNA = Seurat::RunPCA(spRNA, npcs = length(dims), verbose = FALSE)
+  
   
   # merge two objects
-  message("Integrating.")
-  anchors <- Seurat::FindIntegrationAnchors(object.list = list(spRNA, scRNA), anchor.features = genes_select,  reduction = "rpca",
-                                    dims = dims, normalization.method = "LogNormalize", verbose = FALSE)
+  message("1st level integration")
+  anchors <- Seurat::FindIntegrationAnchors(object.list = list(spRNA, scRNA), normalization.method = "LogNormalize", 
+                                            reduction = "rpca", anchor.features = genes_select,
+                                            dims = dims,  k.anchor = 20, verbose = FALSE)
   integrated <- Seurat::IntegrateData(anchorset = anchors, dims = dims, 
                                       normalization.method = "LogNormalize", verbose = TRUE)
   rm(anchors)
   gc()
-  
-  #SeuratObject::RenameAssays(object = integrated, integrated = 'RNA')
 
+  
   # count level normalization
-  message("normalization.")
+  message("normalization")
   norm_data = expm1(integrated@assays$RNA@data)
   
   
@@ -386,22 +387,25 @@ iSpatial_v2 = function(
   # remove cell with number of expressed gene < 98%
   integrated = integrated[, norm_factor != 0]
   
-  rm(norm_data, norm_factor)
+  spRNA_images = spRNA@images
+  
+  rm(norm_data, norm_factor, scRNA, spRNA)
   gc()
   
+
   # check normalization
   #avg_expr = Seurat::AverageExpression(integrated, group.by="tech", slot="data")
   #boxplot(log1p(avg_expr$RNA[genes_select, ]))
   
   # 2nd level integration
+  message("2nd level integration")
   SeuratObject::VariableFeatures(integrated, assay = "integrated") = genes_select
-  #integrated = Seurat::ScaleData(integrated, verbose = FALSE)
   integrated = Seurat::ScaleData(integrated, features = genes_select, vars.to.regress = "tech",
                                  assay = "integrated", verbose = FALSE)
   integrated = Seurat::RunPCA(integrated, npcs = length(dims), 
                               assay = "integrated", verbose = FALSE)
 
-  integrated <- harmony::RunHarmony(
+  integrated <- suppressWarnings( harmony::RunHarmony(
     object = integrated,
     group.by.vars = 'tech',
     plot_convergence = F,
@@ -409,8 +413,8 @@ iSpatial_v2 = function(
     lambda = 0.5,
     assay.use = "integrated",
     verbose = FALSE,
-    max.iter.harmony = 15
-  )
+    max.iter.harmony = 20
+  ))
   
   # find neighbors
   integrated = Seurat::FindNeighbors(integrated, k.param = k.neighbor, reduction="harmony",
@@ -421,8 +425,10 @@ iSpatial_v2 = function(
   
   neigbors = as.data.frame(neigbors)
   
-  integrated_scRNA = subset(integrated, subset = tech == "scRNA")
-  integrated_merFISH = subset(integrated, subset = tech == "scRNA", invert = TRUE)
+  DefaultAssay(integrated) <- "RNA"
+  integrated = Seurat::DietSeurat(integrated, counts = F, assays = "RNA")
+  integrated_scRNA = suppressWarnings(subset(integrated, subset = tech == "scRNA"))
+  integrated_merFISH = suppressWarnings(subset(integrated, subset = tech == "scRNA", invert = TRUE))
   cells_name = colnames(integrated_scRNA)
   
   neigbors = as.list(neigbors)
@@ -478,10 +484,11 @@ iSpatial_v2 = function(
   integrated_merFISH[[infered.assay]] = SeuratObject::CreateAssayObject(data = as(enhancer_expr, "dgCMatrix"))
   
   DefaultAssay(integrated_merFISH) <- infered.assay
-  integrated_merFISH[["integrated"]] = NULL
+  
+  integrated_merFISH = Seurat::DietSeurat(integrated_merFISH, assays = infered.assay)
   
   # add spatial information
-  integrated_merFISH@images = spRNA@images
+  integrated_merFISH@images = spRNA_images
   
   for(img in names(integrated_merFISH@images)){
     integrated_merFISH@images[[img]]@coordinates <- integrated_merFISH@images[[img]]@coordinates[
@@ -493,7 +500,7 @@ iSpatial_v2 = function(
 
 #' Hierarchy version of iSpatial
 
-iSpatial_Hierarchy = function(
+infer_Hierarchy = function(
   spRNA,
   scRNA, 
   dims = 1:30,
@@ -666,6 +673,8 @@ iSpatial_Hierarchy = function(
   
   # assign inferred expression value to new assay
   integrated_merFISH[[infered.assay]] = SeuratObject::CreateAssayObject(data = as(enhancer_expr, "dgCMatrix"))
+  
+  integrated_merFISH = Seurat::DietSeurat(integrated_merFISH, assays = infered.assay)
   
   DefaultAssay(integrated_merFISH) <- infered.assay
   

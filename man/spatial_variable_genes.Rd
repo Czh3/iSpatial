@@ -4,12 +4,23 @@
 \alias{spatial_variable_genes}
 \title{Find spatial variable genes}
 \usage{
-spatial_variable_genes(obj, assay, bin = 20, n.core = 1)
+spatial_variable_genes(
+  spRNA.obj,
+  spRNA.assay = "enhanced",
+  scRNA.obj = NULL,
+  scRNA.assay = "RNA",
+  bin = 20,
+  n.core = 1
+)
 }
 \arguments{
-\item{obj}{seurat object}
+\item{spRNA.obj}{spatial transcriptome seurat object}
 
-\item{assay}{select assay}
+\item{spRNA.assay}{spatial transcriptome assay}
+
+\item{scRNA.obj}{scRNA-seq seurat object}
+
+\item{scRNA.assay}{scRNA-seq seurat assay}
 
 \item{bin}{number of bins used to segregate the image}
 
