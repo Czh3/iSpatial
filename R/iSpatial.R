@@ -292,6 +292,33 @@ infer_v0.1 = function(
   return(integrated_merFISH)
 }
 
+#' Main function of iSpatial
+#' 
+#' This function integrates scRNA-seq and spatial transcriptome. With limited
+#' genes in merFISH/SeqFISH, iSpatial infer/enhance all genes from scRNA-seq.
+#' Finally, this function generates spatially expression of all genes.
+#' 
+#' @param spRNA seurat object of spatial transcriptome data
+#' @param scRNA seurat object of single cell RNA-seq data
+#' @param dims which dimensions to use when find the nearest neighbors
+#' @param k.neighbor number of neighbors to use when infer the expression
+#' @param infered.assay names of output assay in seurat object
+#' @param weighted.KNN we use a dynamics weight to assign scRNA values to spRNA.
+#' The dynamics weight based on the correlation between scRNA cell and spRNA 
+#' cell. 
+#' @param RNA.weight the weight of scRNA-seq expression when genes detected both
+#' in spRNA and scRNA. RNA.weight should be 0 to 1.
+#' The inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.
+#' @param n.core number of CPU cores used to parallel.
+#' @param correct.scRNA Whether to stabilize expression in scRNA.
+#' @param correct.spRNA Whether to stabilize expression in spRNA.
+#' @param correct.neighbor number of nearest neighbors used to correct expr.
+#' 
+#' @return returns a seurat object with inferred expression in infered.assay.
+#' 
+#' @export
+#' 
+#' 
 
 infer = function(
   spRNA,
@@ -342,22 +369,29 @@ infer = function(
   }
   
   # run pca
-  SeuratObject::VariableFeatures(scRNA) = genes_select
-  scRNA = Seurat::ScaleData(scRNA, verbose = FALSE)
-  scRNA = Seurat::RunPCA(scRNA, npcs = length(dims), verbose = FALSE)
-  
-  SeuratObject::VariableFeatures(spRNA) = genes_select
+  spRNA = Seurat::FindVariableFeatures(spRNA, verbose = FALSE)
+  SeuratObject::VariableFeatures(spRNA) = SeuratObject::VariableFeatures(spRNA)[SeuratObject::VariableFeatures(spRNA) %in% genes_select]
   spRNA = Seurat::ScaleData(spRNA, verbose = FALSE)
   spRNA = Seurat::RunPCA(spRNA, npcs = length(dims), verbose = FALSE)
+  
+  SeuratObject::VariableFeatures(scRNA) = SeuratObject::VariableFeatures(spRNA)
+  scRNA = Seurat::ScaleData(scRNA, verbose = FALSE)
+  scRNA = Seurat::RunPCA(scRNA, npcs = length(dims), verbose = FALSE)
   
   
   # merge two objects
   message("1st level integration")
-  anchors <- Seurat::FindIntegrationAnchors(object.list = list(spRNA, scRNA), normalization.method = "LogNormalize", 
-                                            reduction = "rpca", anchor.features = genes_select,
-                                            dims = dims,  k.anchor = 20, verbose = FALSE)
-  integrated <- Seurat::IntegrateData(anchorset = anchors, dims = dims, 
-                                      normalization.method = "LogNormalize", verbose = TRUE)
+  anchors <- Seurat::FindIntegrationAnchors(object.list = list(spRNA, scRNA), 
+                                            normalization.method = "LogNormalize", 
+                                            reduction = "rpca", 
+                                            anchor.features = SeuratObject::VariableFeatures(spRNA),
+                                            dims = dims,  
+                                            k.anchor = 20, 
+                                            verbose = FALSE)
+  integrated <- Seurat::IntegrateData(anchorset = anchors, 
+                                      dims = dims, 
+                                      normalization.method = "LogNormalize",
+                                      verbose = TRUE)
   rm(anchors)
   gc()
 
@@ -387,7 +421,7 @@ infer = function(
   # remove cell with number of expressed gene < 98%
   integrated = integrated[, norm_factor != 0]
   
-  spRNA_images = spRNA@images
+  spRNA_images = suppressWarnings(spRNA@images)
   
   rm(norm_data, norm_factor, scRNA, spRNA)
   gc()
@@ -399,34 +433,42 @@ infer = function(
   
   # 2nd level integration
   message("2nd level integration")
-  SeuratObject::VariableFeatures(integrated, assay = "integrated") = genes_select
-  integrated = Seurat::ScaleData(integrated, features = genes_select, vars.to.regress = "tech",
-                                 assay = "integrated", verbose = FALSE)
-  integrated = Seurat::RunPCA(integrated, npcs = length(dims), 
-                              assay = "integrated", verbose = FALSE)
+  #SeuratObject::VariableFeatures(integrated, assay = "integrated") = genes_select
+  integrated = Seurat::ScaleData(integrated, #vars.to.regress = "tech", features = genes_select,
+                                 assay = "integrated", 
+                                 verbose = FALSE)
+  integrated = Seurat::RunPCA(integrated, 
+                              npcs = length(dims), 
+                              assay = "integrated", 
+                              verbose = FALSE)
 
   integrated <- suppressWarnings( harmony::RunHarmony(
-    object = integrated,
-    group.by.vars = 'tech',
-    plot_convergence = F,
-    theta = 3,
-    lambda = 0.5,
-    assay.use = "integrated",
-    verbose = FALSE,
-    max.iter.harmony = 20
-  ))
+                                    object = integrated,
+                                    group.by.vars = 'tech',
+                                    plot_convergence = F,
+                                    theta = 3,
+                                    lambda = 0.5,
+                                    assay.use = "integrated",
+                                    verbose = FALSE,
+                                    max.iter.harmony = 20
+                                  ))
   
   # find neighbors
-  integrated = Seurat::FindNeighbors(integrated, k.param = k.neighbor, reduction="harmony",
-                                     dims=dims, return.neighbor = T, assay = "integrated")
-  neigbors = sapply(colnames(subset(integrated, subset = tech == "scRNA", invert = TRUE)), function(i){
+  integrated = Seurat::FindNeighbors(integrated, 
+                                     k.param = k.neighbor,
+                                     reduction="harmony",
+                                     dims=dims, 
+                                     return.neighbor = T, 
+                                     assay = "integrated")
+  
+  neigbors = suppressWarnings(sapply(colnames(subset(integrated, subset = tech == "scRNA", invert = TRUE)), function(i){
     Seurat::TopNeighbors(integrated@neighbors$integrated.nn, i, n = k.neighbor)
-  })
+  }))
   
   neigbors = as.data.frame(neigbors)
   
   DefaultAssay(integrated) <- "RNA"
-  integrated = Seurat::DietSeurat(integrated, counts = F, assays = "RNA")
+  integrated = suppressWarnings(Seurat::DietSeurat(integrated, counts = F, assays = "RNA"))
   integrated_scRNA = suppressWarnings(subset(integrated, subset = tech == "scRNA"))
   integrated_merFISH = suppressWarnings(subset(integrated, subset = tech == "scRNA", invert = TRUE))
   cells_name = colnames(integrated_scRNA)
@@ -437,7 +479,6 @@ infer = function(
   neigbors = lapply(neigbors, function(x){
     x = x[x %in% cells_name]
   })
-  
   
   enhancer_expr = integrated_merFISH@assays$RNA@data
   

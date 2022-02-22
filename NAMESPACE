@@ -3,6 +3,7 @@
 export(cluster_spatial_expr_pattern)
 export(cross_validation)
 export(get_spatial_features)
+export(infer)
 export(infer_v0.1)
 export(sample_region)
 export(sparse.cor)

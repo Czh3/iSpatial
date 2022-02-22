@@ -92,7 +92,7 @@ spatial_variable_genes = function(spRNA.obj, spRNA.assay = "enhanced", scRNA.obj
   colnames(SVGs) = c("gene", "image", "spRNA.p.value", "spRNA.pct.expr")
   
   if(is.null(scRNA.obj)){
-    SVGs$p.adj = p.adjust(SVGs$spRNA.p.value, method = "BH")
+    SVGs$p.adj = p.adjust(SVGs$spRNA.p.value, method = "bonferroni")
     return(SVGs)
   } else {
     if(!"umap" %in% names(scRNA.obj@reductions)){
@@ -126,7 +126,7 @@ spatial_variable_genes = function(spRNA.obj, spRNA.assay = "enhanced", scRNA.obj
     
     rownames(SVGs_merge) = 1:nrow(SVGs_merge)
     SVGs_merge$p.value = sqrt(SVGs_merge$spRNA.p.value * SVGs_merge$scRNA.p.value)
-    SVGs_merge$p.adj = p.adjust(SVGs_merge$p.value, method = "BH")
+    SVGs_merge$p.adj = p.adjust(SVGs_merge$p.value, method = "bonferroni")
     SVGs_merge
   }
 }
