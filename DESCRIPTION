@@ -1,6 +1,6 @@
 Package: iSpatial
 Title: infer transcriptome-wide spatial expression via integration of scRNA and spRNA 
-Version: 0.0.1
+Version: 1.0.0
 Authors@R: 
     person("Chao", "Zhang", , "chao.zhang@childrens.harvard.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-4167-4872"))
