@@ -45,5 +45,10 @@ data(NA_merFISH)
 ```
 
 ### Usage:
+
+```
+NA_merFISH_infer = infer(NA_merFISH, NA_scRNA)
+```
+
 For step by step usage, check the ```vignettes``` directory of the repo.
 
