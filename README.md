@@ -50,5 +50,5 @@ data(NA_merFISH)
 NA_merFISH_infer = infer(NA_merFISH, NA_scRNA)
 ```
 
-For step by step usage, check the ```vignettes``` directory of the repo.
+For step by step usage, see [example](http://htmlpreview.github.io/?https://github.com/Czh3/iSpatial/blob/master/vignettes/introduction.html).
 

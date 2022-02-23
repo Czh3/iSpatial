@@ -111,7 +111,7 @@ spatial_variable_genes = function(spRNA.obj, spRNA.assay = "enhanced", scRNA.obj
       coordinates = coord.df
     )
     
-    SVGs_sc = spatial_var_gene_slice(scRNA.obj, scRNA.assay, "image", bin, n.core)
+    SVGs_sc = suppressWarnings(spatial_var_gene_slice(scRNA.obj, scRNA.assay, "image", bin, n.core))
     SVGs_sc = as.data.frame(SVGs_sc)
     SVGs_sc$pct.expr = as.numeric(SVGs_sc$pct.expr)
     SVGs_sc$p.value = as.numeric(SVGs_sc$p.value)

@@ -1,10 +1,10 @@
 ---
 title: "iSpatial Tutorial"
-output: html_document
-vignette: >
-  %\VignetteIndexEntry{introduction}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+output:
+  pdf_document: default
+  html_document: default
+vignette: |
+  %\VignetteIndexEntry{introduction} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
@@ -80,7 +80,11 @@ NA_scRNA = RunPCA(NA_scRNA, verbose = FALSE)
 NA_scRNA = RunUMAP(NA_scRNA, dims = 1:30, verbose = FALSE)
 
 # Find spatial variable genes
-SVGs_infer = spatial_variable_genes(NA_merFISH_iSpatial, "enhanced", NA_scRNA, "RNA", n.core = 10)
+SVGs_infer = iSpatial::spatial_variable_genes(spRNA.obj = NA_merFISH_iSpatial,
+                                              spRNA.assay = "enhanced",
+                                              scRNA.obj = NA_scRNA,
+                                              scRNA.assay = "RNA",
+                                              n.core = 10)
 SVGs_infer_sig = SVGs_infer[SVGs_infer$p.value < .01 & SVGs_infer$spRNA.p.value < .01, ]
 
 g = ggplot2::ggplot(SVGs_infer, aes(-log10(scRNA.p.value), -log10(spRNA.p.value),
@@ -90,7 +94,7 @@ g = ggplot2::ggplot(SVGs_infer, aes(-log10(scRNA.p.value), -log10(spRNA.p.value)
 plotly::ggplotly(g)
 
 # cluster genes based on spatial expression pattern
-gene_cluster = cluster_spatial_expr_pattern(NA_merFISH_iSpatial, "enhanced", 
+gene_cluster = iSpatial::cluster_spatial_expr_pattern(NA_merFISH_iSpatial, "enhanced", 
                              feature = SVGs_infer_sig$gene, 
                              n.cluster = 12,
                              ncol.plot = 4, 
