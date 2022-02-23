@@ -10,7 +10,10 @@ vignette: |
 
 # iSpatail Tutorial
 
-### load package
+---
+
+### Load package
+Install iSpatial package from Github. iSpatial is based on Seurat, you need install [Seurat](https://satijalab.org/seurat/articles/install.html) first .
 
 ```r
 # install iSpatial package
@@ -23,8 +26,8 @@ library(Seurat)
 library(ggplot2)
 ```
 
-### load data
-Load scRNA-seq and merFISH of Mouse Nucleus Accumbens.
+### Load data
+Load scRNA-seq and merFISH of Mouse Nucleus Accumbens. The data are down-sampled from [Renchao et al](https://www.nature.com/articles/s41593-021-00938-x).
 
 ```r
 # scRNA-seq data
@@ -34,7 +37,8 @@ data(NA_scRNA)
 data(NA_merFISH)
 ```
 
-### normalize data
+### Normalize data
+The data need be log normalized.
 
 ```r
 # scRNA-seq data
@@ -64,40 +68,38 @@ NA_merFISH_iSpatial = iSpatial::infer(NA_merFISH, NA_scRNA)
 ```
 
 
-### Gene "Acbd7" is not in the merFISH targeted genes
+### Example of spatial expression 
+Gene "Acbd7" is not in the merFISH targeted genes
 
 ```r
 "Acbd7" %in% rownames(NA_merFISH)
 #> [1] FALSE
 ```
 
-### After inferring, we can get the spatial expression of Acbd7
+After inferring, we can get the spatial expression of Acbd7
 
 ```r
 SpatialFeaturePlot(NA_merFISH_iSpatial, features = "Acbd7", stroke=0.1, slot="data") +
   theme(legend.position = "right") +
   scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
-#> Warning: `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> = "none")` instead.
 #> Scale for 'fill' is already present. Adding another scale for 'fill', which will replace the existing scale.
 ```
 
 ![plot of chunk Acbd7_after](figure/Acbd7_after-1.png)
 
-### enhance the spatial expression of Tac2
+### Enhance the spatial expression of Tac2
 
 ```r
 #raw expression
 p1 = SpatialFeaturePlot(NA_merFISH, features = "Tac2", stroke=0.1, slot="data") +
   theme(legend.position = "right") + ggtitle("before") +
   scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
-#> Warning: `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> = "none")` instead.
 #> Scale for 'fill' is already present. Adding another scale for 'fill', which will replace the existing scale.
 
 # inferred
 p2 = SpatialFeaturePlot(NA_merFISH_iSpatial, features = "Tac2", stroke=0.1, slot="data") +
   theme(legend.position = "right") + ggtitle("after") +
   scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
-#> Warning: `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> = "none")` instead.
 #> Scale for 'fill' is already present. Adding another scale for 'fill', which will replace the existing scale.
 
 p1 + p2
@@ -120,7 +122,6 @@ SVGs_infer = iSpatial::spatial_variable_genes(spRNA.obj = NA_merFISH_iSpatial,
                                               scRNA.obj = NA_scRNA,
                                               scRNA.assay = "RNA",
                                               n.core = 10)
-#> Warning: Adding image data that isn't associated with any assay present
 SVGs_infer_sig = SVGs_infer[SVGs_infer$p.value < .01 & SVGs_infer$spRNA.p.value < .01, ]
 
 ggplot2::ggplot(SVGs_infer, aes(-log10(scRNA.p.value), -log10(spRNA.p.value),
@@ -131,7 +132,7 @@ ggplot2::ggplot(SVGs_infer, aes(-log10(scRNA.p.value), -log10(spRNA.p.value),
 
 ![plot of chunk SVGs](figure/SVGs-1.png)
 
-### group the SVGs into clusters based on spatial expression pattern
+### Group the SVGs into clusters based on spatial expression pattern
 
 ```r
 gene_cluster = iSpatial::cluster_spatial_expr_pattern(NA_merFISH_iSpatial, "enhanced", 
@@ -163,7 +164,6 @@ names(gene_cluster[gene_cluster==7])
 SpatialFeaturePlot(NA_merFISH_iSpatial, features = "Coch", stroke=0.1, slot="data") +
   theme(legend.position = "right") + 
   scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
-#> Warning: `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> = "none")` instead.
 #> Scale for 'fill' is already present. Adding another scale for 'fill', which will replace the existing scale.
 ```
 
@@ -188,7 +188,8 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] rmarkdown_2.11     knitr_1.36         ggplot2_3.3.5      SeuratObject_4.0.2 Seurat_4.0.5       iSpatial_1.0.0    
+#> [1] webshot_0.5.2      plotly_4.10.0      rmarkdown_2.11     knitr_1.36         ggplot2_3.3.5      SeuratObject_4.0.2 Seurat_4.0.5      
+#> [8] iSpatial_1.0.0    
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] plyr_1.8.6            igraph_1.2.7          lazyeval_0.2.2        splines_4.0.5         crosstalk_1.2.0       listenv_0.8.0        
@@ -206,9 +207,9 @@ sessionInfo()
 #>  [73] cachem_1.0.6          cli_3.1.0             generics_0.1.1        devtools_2.4.2        ggridges_0.5.3        evaluate_0.14        
 #>  [79] stringr_1.4.0         fastmap_1.1.0         yaml_2.2.1            goftest_1.2-3         processx_3.5.2        bit64_4.0.5          
 #>  [85] fs_1.5.0              fitdistrplus_1.1-6    purrr_0.3.4           RANN_2.6.1            pbapply_1.5-0         future_1.23.0        
-#>  [91] nlme_3.1-153          mime_0.12             hdf5r_1.3.3           compiler_4.0.5        rstudioapi_0.13       plotly_4.10.0        
-#>  [97] png_0.1-7             testthat_3.1.0        spatstat.utils_2.2-0  tibble_3.1.5          stringi_1.7.5         highr_0.9            
-#> [103] ps_1.6.0              RSpectra_0.16-0       desc_1.4.0            lattice_0.20-45       Matrix_1.3-4          SeuratDisk_0.0.0.9019
+#>  [91] nlme_3.1-153          mime_0.12             hdf5r_1.3.3           compiler_4.0.5        rstudioapi_0.13       png_0.1-7            
+#>  [97] testthat_3.1.0        spatstat.utils_2.2-0  tibble_3.1.5          stringi_1.7.5         highr_0.9             ps_1.6.0             
+#> [103] RSpectra_0.16-0       desc_1.4.0            lattice_0.20-45       Matrix_1.3-4          markdown_1.1          SeuratDisk_0.0.0.9019
 #> [109] ggsci_2.9             vctrs_0.3.8           pillar_1.6.4          lifecycle_1.0.1       spatstat.geom_2.3-0   lmtest_0.9-38        
 #> [115] RcppAnnoy_0.0.19      data.table_1.14.2     cowplot_1.1.1         irlba_2.3.3           httpuv_1.6.3          patchwork_1.1.1      
 #> [121] R6_2.5.1              promises_1.2.0.1      KernSmooth_2.23-20    gridExtra_2.3         parallelly_1.28.1     sessioninfo_1.2.1    
