@@ -1,5 +1,5 @@
 ---
-title: "introduction"
+title: "iSpatial Tutorial"
 output: html_document
 vignette: >
   %\VignetteIndexEntry{introduction}
@@ -14,26 +14,41 @@ knitr::opts_chunk$set(
 )
 ```
 
-# load package
+### load package
 ```{r setup}
-#devtools::install_github("Czh3/iSpatial", force = T)
+# install iSpatial package
+# devtools::install_github("Czh3/iSpatial")
+
+# load
 library(iSpatial)
+
+library(Seurat)
+library(ggplot2)
 ```
 
-# infer merFISH data:
-```{r example}
+### load data
+Load scRNA-seq and merFISH of Mouse Nucleus Accumbens.
+```{r load_data}
 # scRNA-seq data
 data(NA_scRNA)
 
 # merFISH data
 data(NA_merFISH)
+```
 
-library(Seurat)
-library(ggplot2)
+### normalize data
+```{r normalize}
+# scRNA-seq data
+NA_scRNA = NormalizeData(NA_scRNA, verbose = FALSE)
 
+# merFISH data
+NA_merFISH = NormalizeData(NA_merFISH, verbose = FALSE)
+```
+
+### infer transcriptome-wide spatial expression
+```{r example}
 # infer spatial transcriptome
 NA_merFISH_iSpatial = iSpatial::infer(NA_merFISH, NA_scRNA)
-
 
 # Gene "Acbd7" is not in the merFISH targeted genes
 "Acbd7" %in% rownames(NA_merFISH)
@@ -43,11 +58,32 @@ SpatialFeaturePlot(NA_merFISH_iSpatial, features = "Acbd7", stroke=0.1, slot="da
   theme(legend.position = "right") +
   scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
 
+# enhance the spatial expression of Tac2
+# raw expression
+p1 = SpatialFeaturePlot(NA_merFISH, features = "Tac2", stroke=0.1, slot="data") +
+  theme(legend.position = "right") + ggtitle("before") +
+  scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
+
+# inferred
+p2 = SpatialFeaturePlot(NA_merFISH_iSpatial, features = "Tac2", stroke=0.1, slot="data") +
+  theme(legend.position = "right") + ggtitle("after") +
+  scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
+
+p1 + p2
+```
+### Find spatial varible genes
+```{r SVGs}
+# run umap of scRNAseq data
+NA_scRNA = FindVariableFeatures(NA_scRNA, verbose = FALSE)
+NA_scRNA = ScaleData(NA_scRNA, verbose = FALSE)
+NA_scRNA = RunPCA(NA_scRNA, verbose = FALSE)
+NA_scRNA = RunUMAP(NA_scRNA, dims = 1:30, verbose = FALSE)
+
 # Find spatial variable genes
 SVGs_infer = spatial_variable_genes(NA_merFISH_iSpatial, "enhanced", NA_scRNA, "RNA", n.core = 10)
-SVGs_infer_sig = SVGs_infer[SVGs_infer$p.adj < 0.05, ]
+SVGs_infer_sig = SVGs_infer[SVGs_infer$p.value < .01 & SVGs_infer$spRNA.p.value < .01, ]
 
-g = ggplot2::ggplot(SVGs_infer, aes(pct.expr, -log10(p.value),
+g = ggplot2::ggplot(SVGs_infer, aes(-log10(scRNA.p.value), -log10(spRNA.p.value),
                                     gene = gene, color = -log10(p.value))) +
   geom_point()+
   theme_classic()
@@ -55,16 +91,19 @@ plotly::ggplotly(g)
 
 # cluster genes based on spatial expression pattern
 gene_cluster = cluster_spatial_expr_pattern(NA_merFISH_iSpatial, "enhanced", 
-                             feature = SVGs_infer_sig$gene, n.cluster = 12,
-                             ncol.plot = 4, bin = 20, n.core = 10)
+                             feature = SVGs_infer_sig$gene, 
+                             n.cluster = 12,
+                             ncol.plot = 4, 
+                             bin = 20,
+                             n.core = 10)
 
 # genes in cluster 7
 names(gene_cluster[gene_cluster==7])
 
 # plot
-spatial_signature_plot(NA_merFISH_iSpatial, 
-                       gene.set = names(gene_cluster[gene_cluster==7]),
-                       set.name = "Class 7")
+SpatialFeaturePlot(NA_merFISH_iSpatial, features = "Coch", stroke=0.1, slot="data") +
+  theme(legend.position = "right") + 
+  scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
 
 ```
 

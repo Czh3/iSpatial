@@ -51,6 +51,7 @@ spatial_var_gene_slice <- function(obj, assay, img, bin, n.core = 1){
   SVGs = as.data.frame(SVGs)
   
   # percent cell expressed
+  pct_expr = Matrix::rowSums(obj[[assay]]@data != 0)
   pct_expr = pct_expr/ncol(obj[[assay]]@data)
   
   SVGs$pct_expr = as.numeric(pct_expr[SVGs$V1])
@@ -99,7 +100,7 @@ spatial_variable_genes = function(spRNA.obj, spRNA.assay = "enhanced", scRNA.obj
       stop("Please run umap in scRNA-seq data")
     }
     # scRNA
-    scRNA.obj = scRNA.obj[rownames(scRNA.obj) %in% rownames(spRNA.obj), ]
+    scRNA.obj = suppressWarnings(scRNA.obj[rownames(scRNA.obj) %in% rownames(spRNA.obj), ])
     
     coord.df = Embeddings(scRNA.obj, reduction="umap")
     coord.df = as.data.frame(coord.df[,c(2,1)])
@@ -148,7 +149,7 @@ get_spatial_features_image <- function(obj, assay, feature, img, bin, n.core = 1
   
   obj = obj[, rownames(coord)]
   
-  if(is.na(feature)){
+  if(is.na(feature[1])){
     feature = rownames(obj)[Matrix::rowSums(obj[[assay]]@data) > 0]
   }
   
@@ -179,7 +180,7 @@ get_spatial_features_image <- function(obj, assay, feature, img, bin, n.core = 1
 
 get_spatial_features <- function(obj, assay, feature, bin, n.core = 1){
   spatial_feature = lapply(names(obj@images), function(img) {
-    get_spatial_features_image(obj, assay, feature, img, bin, n.core = n.core)
+    suppressMessages(get_spatial_features_image(obj, assay, feature, img, bin, n.core = n.core))
     })
   spatial_feature = do.call(cbind, spatial_feature)
   
@@ -226,7 +227,7 @@ cluster_spatial_expr_pattern <- function(obj,
   message(paste0(capture.output(table(SVG_cluster)), collapse = "\n"))
   
   plots = lapply(1:n.cluster, function(x){
-      suppressMessages(spatial_signature_plot(obj, assay, names(SVG_cluster[SVG_cluster==x]), paste("C", as.character(x))))
+      suppressMessages(suppressWarnings(spatial_signature_plot(obj, assay, names(SVG_cluster[SVG_cluster==x]), paste("C", as.character(x)))))
   })
   
   gridExtra::grid.arrange(grobs = plots, ncol = ncol.plot)
