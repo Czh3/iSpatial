@@ -13,6 +13,7 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
+# iSpatail Tutorial
 
 ### load package
 ```{r setup}
@@ -46,20 +47,27 @@ NA_merFISH = NormalizeData(NA_merFISH, verbose = FALSE)
 ```
 
 ### infer transcriptome-wide spatial expression
-```{r example}
+```{r infer}
 # infer spatial transcriptome
 NA_merFISH_iSpatial = iSpatial::infer(NA_merFISH, NA_scRNA)
+```
 
-# Gene "Acbd7" is not in the merFISH targeted genes
+
+### Gene "Acbd7" is not in the merFISH targeted genes
+```{r Acbd7}
 "Acbd7" %in% rownames(NA_merFISH)
+```
 
-# After inferring, we can get the spatial expression of Acbd7
+### After inferring, we can get the spatial expression of Acbd7
+```{r Acbd7_after}
 SpatialFeaturePlot(NA_merFISH_iSpatial, features = "Acbd7", stroke=0.1, slot="data") +
   theme(legend.position = "right") +
   scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
+```
 
-# enhance the spatial expression of Tac2
-# raw expression
+### enhance the spatial expression of Tac2
+```{r Tac2}
+#raw expression
 p1 = SpatialFeaturePlot(NA_merFISH, features = "Tac2", stroke=0.1, slot="data") +
   theme(legend.position = "right") + ggtitle("before") +
   scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red"))
@@ -71,7 +79,8 @@ p2 = SpatialFeaturePlot(NA_merFISH_iSpatial, features = "Tac2", stroke=0.1, slot
 
 p1 + p2
 ```
-### Find spatial varible genes
+
+### Find spatial variable genes
 ```{r SVGs}
 # run umap of scRNAseq data
 NA_scRNA = FindVariableFeatures(NA_scRNA, verbose = FALSE)
@@ -87,13 +96,14 @@ SVGs_infer = iSpatial::spatial_variable_genes(spRNA.obj = NA_merFISH_iSpatial,
                                               n.core = 10)
 SVGs_infer_sig = SVGs_infer[SVGs_infer$p.value < .01 & SVGs_infer$spRNA.p.value < .01, ]
 
-g = ggplot2::ggplot(SVGs_infer, aes(-log10(scRNA.p.value), -log10(spRNA.p.value),
+ggplot2::ggplot(SVGs_infer, aes(-log10(scRNA.p.value), -log10(spRNA.p.value),
                                     gene = gene, color = -log10(p.value))) +
   geom_point()+
   theme_classic()
-plotly::ggplotly(g)
+```
 
-# cluster genes based on spatial expression pattern
+### group the SVGs into clusters based on spatial expression pattern
+```{r cluster_SVG}
 gene_cluster = iSpatial::cluster_spatial_expr_pattern(NA_merFISH_iSpatial, "enhanced", 
                              feature = SVGs_infer_sig$gene, 
                              n.cluster = 12,
