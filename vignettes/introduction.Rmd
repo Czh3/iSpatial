@@ -99,9 +99,10 @@ SVGs_infer = iSpatial::spatial_variable_genes(spRNA.obj = NA_merFISH_iSpatial,
                                               scRNA.obj = NA_scRNA,
                                               scRNA.assay = "RNA",
                                               n.core = 10)
+
 SVGs_infer_sig = SVGs_infer[SVGs_infer$p.value < .01 & SVGs_infer$spRNA.p.value < .01, ]
 
-ggplot2::ggplot(SVGs_infer, aes(-log10(scRNA.p.value), -log10(spRNA.p.value),
+ggplot2::ggplot(SVGs_infer1, aes(-log10(scRNA.p.value), -log10(spRNA.p.value),
                                     gene = gene, color = -log10(p.value))) +
   geom_point()+
   theme_classic()

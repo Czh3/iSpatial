@@ -4,7 +4,7 @@
 \alias{spatial_var_gene_slice}
 \title{Find spatial variable genes}
 \usage{
-spatial_var_gene_slice(obj, assay, img, bin, n.core = 1)
+spatial_var_gene_slice(obj, assay, img, bin, test.use = "wilcox", n.core = 1)
 }
 \arguments{
 \item{obj}{seurat object}
@@ -14,6 +14,10 @@ spatial_var_gene_slice(obj, assay, img, bin, n.core = 1)
 \item{img}{select image}
 
 \item{bin}{number of bins used to segregate the image}
+
+\item{test.use}{which test to use. Available options are:
+"ks": Kolmogorov-Smirnov Tests
+"wilcox": Wilcoxon Rank Sum and Signed Rank Tests}
 
 \item{n.core}{number of CPU cores used}
 }

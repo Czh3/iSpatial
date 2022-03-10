@@ -10,11 +10,19 @@ NULL
 #' @param assay select assay
 #' @param img select image 
 #' @param bin number of bins used to segregate the image
+#' @param test.use which test to use. Available options are:
+#' "ks": Kolmogorov-Smirnov Tests
+#' "wilcox": Wilcoxon Rank Sum and Signed Rank Tests
 #' @param n.core number of CPU cores used
 #' 
 #' @return return a matrix wtih spatial variable genes
 #' 
-spatial_var_gene_slice <- function(obj, assay, img, bin, n.core = 1){
+spatial_var_gene_slice <- function(obj,
+                                   assay,
+                                   img,
+                                   bin,
+                                   test.use = "wilcox",
+                                   n.core = 1){
   coord = obj@images[[img]]@coordinates
   
   obj = obj[, rownames(coord)]
@@ -35,13 +43,16 @@ spatial_var_gene_slice <- function(obj, assay, img, bin, n.core = 1){
   obj_random_expr = Seurat::AverageExpression(obj_random, group.by = "xy", assays = assay)[[1]]
   
   SVGs = parallel::mclapply(rownames(obj_expr), function(gene){
-    p = wilcox.test(obj_expr[gene, ], obj_random_expr[gene, ])$p.value
+    if(test.use == "wilcox"){
+      p = wilcox.test(obj_expr[gene, ], obj_random_expr[gene, ])$p.value
+    } else {
+      p = ks.test(obj_expr[gene, ], obj_random_expr[gene, ])$p.value
+    }
     
     obj_expr_sort = sort(obj_expr[gene, ])
     obj_random_expr_sort = sort(obj_random_expr[gene, ])
     
-    n_bins = bin*bin * 0.05
-    
+    #n_bins = bin*bin * 0.05
     #obs_exp = log((mean(obj_expr_sort[(length(obj_expr_sort)-n_bins):length(obj_expr_sort)]) - mean(obj_expr_sort[1:n_bins]))/
     #  (mean(obj_random_expr_sort[(length(obj_random_expr_sort)-n_bins):length(obj_random_expr_sort)]) - mean(obj_random_expr_sort[1:n_bins])))
     #spatial_bias = mean(obj_expr_sort[(length(obj_expr_sort)-n_bins):length(obj_expr_sort)]) - mean(obj_expr_sort[1:n_bins])
@@ -69,6 +80,9 @@ spatial_var_gene_slice <- function(obj, assay, img, bin, n.core = 1){
 #' @param spRNA.assay spatial transcriptome assay
 #' @param scRNA.obj scRNA-seq seurat object
 #' @param scRNA.assay scRNA-seq seurat assay
+#' @param test.use which test to use. Available options are:
+#' "ks": Kolmogorov-Smirnov Tests
+#' "wilcox": Wilcoxon Rank Sum and Signed Rank Tests
 #' @param bin number of bins used to segregate the image
 #' @param n.core number of CPU cores used
 #' 
@@ -77,14 +91,24 @@ spatial_var_gene_slice <- function(obj, assay, img, bin, n.core = 1){
 #' @export
 #' 
 
-spatial_variable_genes = function(spRNA.obj, spRNA.assay = "enhanced", scRNA.obj = NULL, scRNA.assay = "RNA", bin = 20, n.core = 1){
-  if(length(obj@images) == 0){
+spatial_variable_genes = function(spRNA.obj, 
+                                  spRNA.assay = "enhanced", 
+                                  scRNA.obj = NULL, 
+                                  scRNA.assay = "RNA", 
+                                  test.use = "wilcox", 
+                                  bin = 20, 
+                                  n.core = 1){
+  if(length(spRNA.obj@images) == 0){
     stop("Check your spatial seurat object, lost image information.")
+  }
+  
+  if(!test.use %in% c("ks", "wilcox")){
+    stop("test.use should be 'ks' or 'wilcox'")
   }
   
   #spRNA
   images = names(spRNA.obj@images)
-  SVGs = parallel::mclapply(images, function(img) spatial_var_gene_slice(spRNA.obj, spRNA.assay, img, bin, n.core)
+  SVGs = parallel::mclapply(images, function(img) spatial_var_gene_slice(spRNA.obj, spRNA.assay, img, bin, test.use = test.use, n.core)
   , mc.cores = n.core)
   SVGs = do.call(rbind, SVGs)
   SVGs = as.data.frame(SVGs)
@@ -111,7 +135,7 @@ spatial_variable_genes = function(spRNA.obj, spRNA.assay = "enhanced", scRNA.obj
       coordinates = coord.df
     )
     
-    SVGs_sc = suppressWarnings(spatial_var_gene_slice(scRNA.obj, scRNA.assay, "image", bin, n.core))
+    SVGs_sc = suppressWarnings(spatial_var_gene_slice(scRNA.obj, scRNA.assay, "image", bin, test.use = test.use, n.core))
     SVGs_sc = as.data.frame(SVGs_sc)
     SVGs_sc$pct.expr = as.numeric(SVGs_sc$pct.expr)
     SVGs_sc$p.value = as.numeric(SVGs_sc$p.value)
@@ -124,6 +148,9 @@ spatial_variable_genes = function(spRNA.obj, spRNA.assay = "enhanced", scRNA.obj
     SVGs_merge$spRNA.pct.expr[is.na(SVGs_merge$spRNA.pct.expr)] <- 0
     SVGs_merge$scRNA.p.value[is.na(SVGs_merge$scRNA.p.value)] <- 1
     SVGs_merge$scRNA.pct.expr[is.na(SVGs_merge$scRNA.pct.expr)] <- 0
+    
+    #SVGs_merge$spRNA.p.value[SVGs_merge$spRNA.p.value < 2.2e-16] <- 2.2e-16
+    #SVGs_merge$scRNA.p.value[SVGs_merge$scRNA.p.value < 2.2e-16] <- 2.2e-16
     
     rownames(SVGs_merge) = 1:nrow(SVGs_merge)
     SVGs_merge$p.value = sqrt(SVGs_merge$spRNA.p.value * SVGs_merge$scRNA.p.value)

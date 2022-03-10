@@ -1,0 +1,61 @@
+---
+title: 'iSpatial: Cortex'
+author: "Chao"
+date: "3/10/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# iSpatail Tutorial
+
+---
+
+### Load package
+Install iSpatial package from Github. iSpatial is based on Seurat, you need install [Seurat](https://satijalab.org/seurat/articles/install.html) first .
+```{r setup}
+# install iSpatial package
+# devtools::install_github("Czh3/iSpatial")
+
+# load
+library(iSpatial)
+
+library(Seurat)
+library(ggplot2)
+```
+
+### Load data
+Load scRNA-seq and STARmap of Mouse Cortex. 
+scRNA-seq is downlaod from [Allen Brain](https://portal.brain-map.org/atlases-and-data/rnaseq)
+STARmap is from [Xiao et al](https://www.science.org/doi/10.1126/science.aat5691).
+```{r load_data}
+# scRNA-seq data
+data(scRNA_VISp)
+
+# STARmap data
+data(starmap)
+```
+
+### Normalize data
+The data need be log normalized.
+```{r normalize}
+# scRNA-seq data
+scRNA_VISp = NormalizeData(scRNA_VISp, verbose = FALSE)
+
+# merFISH data
+starmap = NormalizeData(starmap, verbose = FALSE)
+```
+
+### infer transcriptome-wide spatial expression
+```{r infer, warning=FALSE}
+# infer spatial transcriptome
+starmap_iSpatial = iSpatial::infer(starmap, scRNA_VISp)
+```
+
+
+### Example of spatial expression 
+Gene "Acbd7" is not in the merFISH targeted genes
+```{r Acbd7}
+"Acbd7" %in% rownames(NA_merFISH)
+```

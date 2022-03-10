@@ -24,9 +24,11 @@
 ### Installation:
 
 ```
-# This package based on Seurat, install Seurat first.
-# You can find more in https://satijalab.org/seurat/articles/install.html
-install.packages('Seurat')
+# This package based on Seurat and harmony.
+# You can find more in:
+# https://satijalab.org/seurat/articles/install.html
+# https://github.com/immunogenomics/harmony
+install.packages(c('Seurat', "harmony"))
 
 install.packages("devtools") # if you have not installed "devtools" package
 devtools::install_github("Czh3/iSpatial")

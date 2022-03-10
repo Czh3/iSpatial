@@ -9,6 +9,7 @@ spatial_variable_genes(
   spRNA.assay = "enhanced",
   scRNA.obj = NULL,
   scRNA.assay = "RNA",
+  test.use = "wilcox",
   bin = 20,
   n.core = 1
 )
@@ -21,6 +22,10 @@ spatial_variable_genes(
 \item{scRNA.obj}{scRNA-seq seurat object}
 
 \item{scRNA.assay}{scRNA-seq seurat assay}
+
+\item{test.use}{which test to use. Available options are:
+"ks": Kolmogorov-Smirnov Tests
+"wilcox": Wilcoxon Rank Sum and Signed Rank Tests}
 
 \item{bin}{number of bins used to segregate the image}
 

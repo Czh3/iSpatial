@@ -15,13 +15,16 @@ infer(
   n.core = 10,
   correct.spRNA = TRUE,
   correct.scRNA = FALSE,
+  correct.weight.NN = 0.5,
   correct.neighbor = 3
 )
 }
 \arguments{
-\item{spRNA}{seurat object of spatial transcriptome data}
+\item{spRNA}{seurat object of spatial transcriptome data.
+Should contain normalized data. Run Seurat::NormalizeData or others.}
 
-\item{scRNA}{seurat object of single cell RNA-seq data}
+\item{scRNA}{seurat object of single cell RNA-seq data.
+Should contain normalized data. Run Seurat::NormalizeData or others.}
 
 \item{dims}{which dimensions to use when find the nearest neighbors}
 
@@ -42,6 +45,8 @@ The inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.}
 \item{correct.spRNA}{Whether to stabilize expression in spRNA.}
 
 \item{correct.scRNA}{Whether to stabilize expression in scRNA.}
+
+\item{correct.weight.NN}{weight of nearest neighbors to correct expr.}
 
 \item{correct.neighbor}{number of nearest neighbors used to correct expr.}
 }
