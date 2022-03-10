@@ -10,11 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 # iSpatail Tutorial
 
----
 
 ### Load package
 Install iSpatial package from Github. iSpatial is based on Seurat, you need install [Seurat](https://satijalab.org/seurat/articles/install.html) first .
-```{r setup}
+```{r load}
 # install iSpatial package
 # devtools::install_github("Czh3/iSpatial")
 
@@ -31,10 +30,11 @@ scRNA-seq is downlaod from [Allen Brain](https://portal.brain-map.org/atlases-an
 STARmap is from [Xiao et al](https://www.science.org/doi/10.1126/science.aat5691).
 ```{r load_data}
 # scRNA-seq data
-data(scRNA_VISp)
+# scRNA_VISp can be download from: https://www.dropbox.com/s/kej7wj2k7hvy5o2/Cortex_scRNA.RDS?dl=0
+# use "readRDS" to load
 
 # STARmap data
-data(starmap)
+# starmap can be download from: https://www.dropbox.com/s/yjcp49djv1zbqo6/Cortex_starmap.RDS?dl=0
 ```
 
 ### Normalize data
@@ -48,14 +48,59 @@ starmap = NormalizeData(starmap, verbose = FALSE)
 ```
 
 ### infer transcriptome-wide spatial expression
-```{r infer, warning=FALSE}
+```{r run, warning=FALSE}
 # infer spatial transcriptome
 starmap_iSpatial = iSpatial::infer(starmap, scRNA_VISp)
 ```
 
 
-### Example of spatial expression 
-Gene "Acbd7" is not in the merFISH targeted genes
-```{r Acbd7}
-"Acbd7" %in% rownames(NA_merFISH)
+### enhance expression 
+```{r enhance, message = FALSE, warning=FALSE, out.width = '90%'}
+# cell type makers 
+p1 = FeaturePlot(starmap, features = c("Slc17a7", "Gad1", "Plp1", "Aqp4", "Cldn5"), pt.size = 1, ncol=5)  & NoAxes() &
+  theme(legend.position = "none") &
+  scale_color_gradientn(colours = c(rainbow(10)[5:10], "red"))
+
+starmap_iSpatial[["umap"]] = starmap[["umap"]]
+p2 = FeaturePlot(starmap_iSpatial, features = c("Slc17a7", "Gad1", "Plp1", "Aqp4", "Cldn5"), pt.size = 1, ncol=5)  & NoAxes() &
+  theme(legend.position = "none") &
+  scale_color_gradientn(colours = c(rainbow(10)[5:10], "red"))
+p1 / p2
+
+
+# layer makers
+g = c( "Cux2", "Nov", "Rorb", "Rspo1", "Fezf2", "Foxp2", "Ctgf", "Plp1")
+
+# raw
+SpatialFeaturePlot(starmap, features = g, stroke = 0, 
+                        pt.size.factor = 4, 
+                        crop = T, slot = "data",
+                        ncol = 4) &
+    theme_void() & theme(legend.position = "none") & coord_flip() &
+    scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red", "red2")) 
+
+# inferred
+SpatialFeaturePlot(starmap_iSpatial, features = g, stroke = 0, 
+                        pt.size.factor = 4, 
+                        crop = T, slot = "data",
+                        ncol = 4) &
+    theme_void() & theme(legend.position = "none") & coord_flip() &
+    scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red", "red2")) 
+
+```
+### infer nontargeted gene
+```{r infer, message = FALSE, warning=FALSE}
+# infer
+g = c("Pvrl3", "Evc2", "Tshz1", "Adra1d", "Serinc2", "Col5a1", "Mag", "Ugt8a")
+SpatialFeaturePlot(starmap_iSpatial, features = g, stroke = 0, 
+                        pt.size.factor = 4, 
+                        crop = T, slot = "data",
+                        ncol = 4) &
+    theme(legend.position = "none") & coord_flip() &
+    scale_fill_gradientn(colours = c(rainbow(10)[5:10], "red", "red2")) 
+
+```
+
+```{r}
+sessionInfo()
 ```
