@@ -147,7 +147,7 @@ infer = function(
   weighted.KNN = TRUE,
   RNA.weight = 0.5,
   n.core = 10,
-  correct.spRNA = TRUE,
+  correct.spRNA = FALSE,
   correct.scRNA = FALSE,
   correct.weight.NN = 0.5,
   correct.neighbor = 3
@@ -403,7 +403,7 @@ infer_1 = function(
   weighted.KNN = TRUE,
   RNA.weight = 0.5,
   n.core = 10,
-  correct.spRNA = TRUE,
+  correct.spRNA = FALSE,
   correct.scRNA = FALSE,
   correct.neighbor = 3
 ){
@@ -641,7 +641,7 @@ infer_harmony = function(
   weighted.KNN = TRUE,
   RNA.weight = 0.5,
   n.core = 10,
-  correct.spRNA = TRUE,
+  correct.spRNA = FALSE,
   correct.scRNA = FALSE,
   correct.neighbor = 3
 ){
@@ -835,7 +835,7 @@ infer_rPCA = function(
   weighted.KNN = TRUE,
   RNA.weight = 0.5,
   n.core = 10,
-  correct.spRNA = TRUE,
+  correct.spRNA = FALSE,
   correct.scRNA = FALSE,
   correct.neighbor = 3
 ){
@@ -1033,4 +1033,95 @@ infer_rPCA = function(
   
   return(integrated_merFISH)
 }
+
+
+
+
+#####
+#' function of iSpatial
+#' 
+#' recommand optimized K value for KNN 
+#' 
+#' 
+#' @param spRNA seurat object of spatial transcriptome data
+#' @param scRNA seurat object of single cell RNA-seq data
+#' @param dims which dimensions to use when find the nearest neighbors
+#' @param k.neighbor a list of K to test 
+#' @param infered.assay names of output assay in seurat object
+#' @param weighted.KNN we use a dynamics weight to assign scRNA values to spRNA.
+#' The dynamics weight based on the correlation between scRNA cell and spRNA 
+#' cell. 
+#' @param RNA.weight the weight of scRNA-seq expression when genes detected both
+#' in spRNA and scRNA. RNA.weight should be 0 to 1.
+#' The inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.
+#' @param n.core number of CPU cores used to parallel.
+#' @param correct.scRNA Whether to stabilize expression in scRNA.
+#' @param correct.spRNA Whether to stabilize expression in spRNA.
+#' @param correct.neighbor number of nearest neighbors used to correct expr.
+#' 
+#' @return returns a ggplot2 object.
+#' 
+#' @export
+#' 
+
+recommend_k = function(  spRNA,
+                         scRNA, 
+                         dims = 1:30,
+                         k.neighbor = c(5, seq(10,80,by=10)),
+                         infered.assay = "enhanced",
+                         n.core = 10,
+                         correct.spRNA = FALSE,
+                         correct.scRNA = FALSE,
+                         correct.weight.NN = 0.5,
+                         correct.neighbor = 3){
+  
+  obj_iSpatial = integrate_iSpatial( spRNA, scRNA,
+                                     dims = dims,
+                                     k.neighbor = max(k.neighbor),
+                                     infered.assay = "enhanced",
+                                     n.core = n.core,
+                                     correct.spRNA = correct.spRNA,
+                                     correct.scRNA = correct.scRNA,
+                                     correct.weight.NN = correct.weight.NN,
+                                     correct.neighbor = correct.neighbor)
+  
+  obj_iSpatial = Seurat::FindNeighbors(obj_iSpatial, 
+                                       k.param = max(k.neighbor),
+                                       reduction = "harmony",
+                                       dims = max(dims), 
+                                       return.neighbor = T, 
+                                       assay = "integrated")
+  
+  neigbors = suppressWarnings(lapply(colnames(subset(obj_iSpatial, subset = tech == "spatial")), function(i){
+    neb = Seurat::TopNeighbors(obj_iSpatial@neighbors$integrated.nn, i, n = max(k.neighbor))
+    obj_iSpatial$tech[neb]
+  }))
+  neigbors = do.call(cbind, neigbors)
+  neigbors = neigbors == "scRNA"
+  
+  
+  KNN_K = lapply(k.neighbor, function(k){
+    neigbors_counts_iSpatial = colSums(neigbors[1:k,])
+    
+    neigbors_counts = sum(neigbors_counts_iSpatial != 0)
+    neigbors_counts = neigbors_counts/length(neigbors_counts_iSpatial)
+    
+    return(c(k, neigbors_counts))
+  })
+  
+  KNN_K = do.call(cbind, KNN_K)
+  KNN_K = as.data.frame(t(KNN_K))
+  colnames(KNN_K) = c("K", "Percent")
+  
+  ggplot2::ggplot(KNN_K, aes(K, Percent)) +
+    geom_point() +
+    theme_classic(base_size = 15) +
+    ylab("Percent of cells in ST, \nwith K-neighbors from scRNAseq")
+}
+
+
+
+
+
+
 

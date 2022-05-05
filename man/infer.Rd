@@ -13,7 +13,7 @@ infer(
   weighted.KNN = TRUE,
   RNA.weight = 0.5,
   n.core = 10,
-  correct.spRNA = TRUE,
+  correct.spRNA = FALSE,
   correct.scRNA = FALSE,
   correct.weight.NN = 0.5,
   correct.neighbor = 3
