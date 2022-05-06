@@ -5,17 +5,17 @@
 ### Rationale:
 
 - For Probe-based spatial transcriptome (such as: merFISH, STARmap, seqFISH): 
-	- target few genes
-	- with spatial information of all cells
+	- **target few genes**
+	- **with spatial information of all cells**
 - For single cell RNA-seq:
-	- detect all genes
-	- with out spatial information
+	- **detect all genes**
+	- **with out spatial information**
 
 ![Rationale](iSpatial_rationale.png)
 
 - **After infer:** transcriptome-wide spatial expression
-	- all genes
-	- with spatial information
+	- **all genes**
+	- **with spatial information**
 
 ### Methodology:
 
