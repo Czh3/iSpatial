@@ -46,7 +46,7 @@ run_harmony = function(seurat_obj, genes_select, npc = 20){
 #' @param obj seurat object
 #' @param neighbor number of nearest neighbors used to correct
 #' @param npcs number of principal component (PC) used to RunPCA
-#' @param weight.NN the weight of nearest neighbors
+#' @param weight.NN the weight of cell itself
 #' @param n.core number of CPU cores used to parallel
 #' @return seurat object with corrected expression
 #' 
@@ -54,9 +54,9 @@ run_harmony = function(seurat_obj, genes_select, npc = 20){
 #' 
 #' 
 stabilize_expr = function(obj, 
-                          neighbor = 3, 
-                          npcs = 10, 
-                          weight.NN = 0.5,
+                          neighbor = 5, 
+                          npcs = 8, 
+                          weight.NN = 0.2,
                           n.core = 10){
   
   neighbor = neighbor + 1 # include cell itself
@@ -146,11 +146,11 @@ infer = function(
   infered.assay = "enhanced",
   weighted.KNN = TRUE,
   RNA.weight = 0.5,
-  n.core = 10,
+  n.core = 8,
   correct.spRNA = FALSE,
   correct.scRNA = FALSE,
-  correct.weight.NN = 0.5,
-  correct.neighbor = 3
+  correct.weight.NN = 0.2,
+  correct.neighbor = 5
 ){
   spRNA$tech = "spatial"
   scRNA$tech = "scRNA"
@@ -402,10 +402,10 @@ infer_1 = function(
   infered.assay = "enhanced",
   weighted.KNN = TRUE,
   RNA.weight = 0.5,
-  n.core = 10,
+  n.core = 8,
   correct.spRNA = FALSE,
   correct.scRNA = FALSE,
-  correct.neighbor = 3
+  correct.neighbor = 5
 ){
   spRNA$tech = "spatial"
   scRNA$tech = "scRNA"
@@ -1069,11 +1069,11 @@ recommend_k = function(  spRNA,
                          dims = 1:30,
                          k.neighbor = c(5, seq(10,80,by=10)),
                          infered.assay = "enhanced",
-                         n.core = 10,
+                         n.core = 8,
                          correct.spRNA = FALSE,
                          correct.scRNA = FALSE,
-                         correct.weight.NN = 0.5,
-                         correct.neighbor = 3){
+                         correct.weight.NN = 0.2,
+                         correct.neighbor = 5){
   
   obj_iSpatial = integrate_iSpatial( spRNA, scRNA,
                                      dims = dims,
