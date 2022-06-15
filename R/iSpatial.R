@@ -452,30 +452,6 @@ infer_1 = function(
   scRNA = Seurat::ScaleData(scRNA, verbose = FALSE)
   scRNA = Seurat::RunPCA(scRNA, npcs = length(dims), verbose = FALSE)
   
-  
-  norm_expr = function(obj){
-    norm_data = expm1(obj@assays$RNA@data)
-    
-    # normalize factor based on trimmed genes
-    norm_factor = Matrix::colMeans(norm_data[genes_select, ]) 
-    norm_factor = as.numeric(norm_factor)
-    norm_factor = norm_factor/mean(norm_factor)
-    
-    norm_data@x <- norm_data@x / rep.int(norm_factor, diff(norm_data@p))
-    obj@assays$RNA@data = as(log1p(norm_data), "dgCMatrix")
-    
-    # remove cell with number of expressed gene < 98%
-    obj = obj[, norm_factor != 0] 
-    rm(norm_data, norm_factor)
-    obj
-  }
-  
-  # count level normalization
-  message("normalization")
- 
-  spRNA = norm_expr(spRNA)
-  scRNA = norm_expr(scRNA)
-  
   spRNA_images = suppressWarnings(spRNA@images)
   
   # merge two objects
@@ -490,7 +466,7 @@ infer_1 = function(
   integrated <- Seurat::IntegrateData(anchorset = anchors, 
                                       dims = dims, 
                                       normalization.method = "LogNormalize",
-                                      verbose = TRUE)
+                                      verbose = FALSE)
   
   rm(scRNA, spRNA, anchors)
   gc()
@@ -499,7 +475,7 @@ infer_1 = function(
   # 2nd level integration
   message("2nd level integration")
   #SeuratObject::VariableFeatures(integrated, assay = "integrated") = genes_select
-  integrated = Seurat::ScaleData(integrated, #vars.to.regress = "tech", #features = genes_select,
+  integrated = Seurat::ScaleData(integrated, #vars.to.regress = "tech", features = genes_select,
                                  assay = "integrated", 
                                  verbose = FALSE)
   integrated = Seurat::RunPCA(integrated, 
@@ -518,32 +494,34 @@ infer_1 = function(
     max.iter.harmony = 20
   ))
   
-  # find neighbors
-  integrated = Seurat::FindNeighbors(integrated, 
-                                     k.param = k.neighbor,
-                                     reduction="harmony",
-                                     dims=dims, 
-                                     return.neighbor = T, 
-                                     assay = "integrated")
-  
-  neigbors = suppressWarnings(sapply(colnames(subset(integrated, subset = tech == "scRNA", invert = TRUE)), function(i){
-    Seurat::TopNeighbors(integrated@neighbors$integrated.nn, i, n = k.neighbor)
-  }))
-  
-  neigbors = as.data.frame(neigbors)
-  
-  DefaultAssay(integrated) <- "RNA"
-  integrated = suppressWarnings(Seurat::DietSeurat(integrated, counts = F, assays = "RNA"))
   integrated_scRNA = suppressWarnings(subset(integrated, subset = tech == "scRNA"))
   integrated_merFISH = suppressWarnings(subset(integrated, subset = tech == "scRNA", invert = TRUE))
   cells_name = colnames(integrated_scRNA)
   
-  neigbors = as.list(neigbors)
+  NN <- Seurat:::FindNN(
+    object = integrated,
+    cells1 = colnames(integrated_merFISH),
+    cells2 = colnames(integrated_scRNA),
+    internal.neighbors = NULL,
+    dims = dims,
+    reduction = "harmony",
+    nn.reduction = "harmony",
+    k = k.neighbor,
+    verbose = TRUE
+  )
+  neighbors <- Seurat::GetIntegrationData(object = NN, integration.name = "integrated", slot = 'neighbors')
+  neighbors = as.data.frame(t(neighbors[['nnab']]@nn.idx))
+  colnames(neighbors) = colnames(integrated_merFISH)
+  
+  neighbors = as.list(neighbors)
   
   # only select neighbor in scRNA data
-  neigbors = lapply(neigbors, function(x){
-    x = x[x %in% cells_name]
+  neigbors = lapply(neighbors, function(x){
+    x = cells_name[x]
   })
+  
+  DefaultAssay(integrated) <- "RNA"
+  integrated = suppressWarnings(Seurat::DietSeurat(integrated, counts = F, assays = "RNA"))
   
   enhancer_expr = integrated_merFISH@assays$RNA@data
   
@@ -557,9 +535,10 @@ infer_1 = function(
         integrated@assays$RNA@data[, cell]
       }else{
         cor_dist = sparse.cor(integrated@assays$RNA@data[genes_select, c(cell, cell_neighbors)])[,1]
+        #cor_dist = cor(t(integrated@reductions$harmony@cell.embeddings[c(cell, cell_neighbors), ]))[,1]
         cor_dist[is.na(cor_dist)] <- 0 
         cor_dist[cor_dist < 0] <- 0
-        cor_dist = cor_dist ** 2
+        cor_dist = cor_dist ** 3 # 
         # normalized correlation distance matrix
         cor_dist = cor_dist / sum(cor_dist)
         cor_dist = c((1-RNA.weight) * cor_dist[1], RNA.weight * cor_dist[-1]) # cor_dist[1] is the cell in spRNA, here = 1
@@ -603,6 +582,7 @@ infer_1 = function(
   
   return(integrated_merFISH)
 }
+
 
 #
 #' function of iSpatial
@@ -1118,8 +1098,6 @@ recommend_k = function(  spRNA,
     theme_classic(base_size = 15) +
     ylab("Percent of cells in ST, \nwith K-neighbors from scRNAseq")
 }
-
-
 
 
 
