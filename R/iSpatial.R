@@ -393,6 +393,7 @@ infer = function(
 #' 
 #' @return returns a seurat object with inferred expression in infered.assay.
 #' 
+#' @export
 #' 
 infer_1 = function(
   spRNA,
@@ -442,6 +443,8 @@ infer_1 = function(
     stop("Too few intesected genes between scRNA and spRNA.")
   }
   
+  #
+ 
   # run pca
   spRNA = Seurat::FindVariableFeatures(spRNA, verbose = FALSE)
   SeuratObject::VariableFeatures(spRNA) = SeuratObject::VariableFeatures(spRNA)[SeuratObject::VariableFeatures(spRNA) %in% genes_select]
@@ -487,7 +490,7 @@ infer_1 = function(
     object = integrated,
     group.by.vars = 'tech',
     plot_convergence = F,
-    theta = 3,
+    theta = 2,
     lambda = 0.5,
     assay.use = "integrated",
     verbose = FALSE,
@@ -671,10 +674,10 @@ infer_harmony = function(
   
   # trim high expression gene, which affect the mean of genes
   trim_quantil1 = Matrix::rowMeans(scRNA@assays$RNA@data[genes_select, ])
-  trim_quantil1 = trim_quantil1[trim_quantil1 < quantile(trim_quantil1, prob = 0.98) ] 
+  trim_quantil1 = trim_quantil1[trim_quantil1 < quantile(trim_quantil1, prob = 0.95) ] 
   
   trim_quantil2 = Matrix::rowMeans(spRNA@assays$RNA@data[genes_select, ])
-  trim_quantil2 = trim_quantil2[trim_quantil2 < quantile(trim_quantil2, prob = 0.98) ] 
+  trim_quantil2 = trim_quantil2[trim_quantil2 < quantile(trim_quantil2, prob = 0.95) ] 
   
   trim_genes = unique(c(names(trim_quantil1), names(trim_quantil2)))
   
@@ -686,7 +689,7 @@ infer_harmony = function(
   norm_data@x <- norm_data@x / rep.int(norm_factor, diff(norm_data@p))
   integrated@assays$RNA@data = log1p(norm_data)
   
-  # remove cell with number of expressed gene < 98%
+  # remove cell with number of expressed gene < 95%
   integrated = integrated[, norm_factor != 0]
   
   rm(norm_data, norm_factor)
