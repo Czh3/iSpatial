@@ -10,11 +10,11 @@ recommend_k(
   dims = 1:30,
   k.neighbor = c(5, seq(10, 80, by = 10)),
   infered.assay = "enhanced",
-  n.core = 10,
+  n.core = 8,
   correct.spRNA = FALSE,
   correct.scRNA = FALSE,
-  correct.weight.NN = 0.5,
-  correct.neighbor = 3
+  correct.weight.NN = 0.2,
+  correct.neighbor = 5
 )
 }
 \arguments{

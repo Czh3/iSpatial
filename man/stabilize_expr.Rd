@@ -4,7 +4,7 @@
 \alias{stabilize_expr}
 \title{stabilize expression}
 \usage{
-stabilize_expr(obj, neighbor = 3, npcs = 10, weight.NN = 0.5, n.core = 10)
+stabilize_expr(obj, neighbor = 5, npcs = 8, weight.NN = 0.2, n.core = 10)
 }
 \arguments{
 \item{obj}{seurat object}
@@ -13,7 +13,7 @@ stabilize_expr(obj, neighbor = 3, npcs = 10, weight.NN = 0.5, n.core = 10)
 
 \item{npcs}{number of principal component (PC) used to RunPCA}
 
-\item{weight.NN}{the weight of nearest neighbors}
+\item{weight.NN}{the weight of cell itself}
 
 \item{n.core}{number of CPU cores used to parallel}
 }

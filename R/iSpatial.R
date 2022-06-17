@@ -395,7 +395,7 @@ infer = function(
 #' 
 #' @export
 #' 
-infer_1 = function(
+infer_v2 = function(
   spRNA,
   scRNA, 
   dims = 1:30,
@@ -524,7 +524,7 @@ infer_1 = function(
   })
   
   DefaultAssay(integrated) <- "RNA"
-  integrated = suppressWarnings(Seurat::DietSeurat(integrated, counts = F, assays = "RNA"))
+  #integrated = suppressWarnings(Seurat::DietSeurat(integrated, counts = F, assays = "RNA"))
   
   enhancer_expr = integrated_merFISH@assays$RNA@data
   
@@ -558,7 +558,7 @@ infer_1 = function(
       if (length(cell_neighbors) == 0){
         enhancer_expr[, cell]
       }else if (length(cell_neighbors) == 1){
-        (1-RNA.weight) * enhancer_expr[, cell] + RNA.weight * integrated_scRNA@assays$RNA@data[,cell_neighbors]
+        (1-RNA.weight) * enhancer_expr[, cell] + RNA.weight * (integrated_scRNA@assays$RNA@data[,cell_neighbors])
       }else{
         (1-RNA.weight) * enhancer_expr[, cell] + RNA.weight * Matrix::rowMeans(integrated_scRNA@assays$RNA@data[,cell_neighbors])
       }
