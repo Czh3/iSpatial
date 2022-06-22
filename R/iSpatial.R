@@ -216,7 +216,7 @@ infer = function(
   integrated <- Seurat::IntegrateData(anchorset = anchors, 
                                       dims = dims, 
                                       normalization.method = "LogNormalize",
-                                      verbose = TRUE)
+                                      verbose = FALSE)
   rm(anchors)
   gc()
 
@@ -524,7 +524,7 @@ infer_v2 = function(
   })
   
   DefaultAssay(integrated) <- "RNA"
-  #integrated = suppressWarnings(Seurat::DietSeurat(integrated, counts = F, assays = "RNA"))
+  integrated = suppressWarnings(Seurat::DietSeurat(integrated, counts = F, assays = "RNA"))
   
   enhancer_expr = integrated_merFISH@assays$RNA@data
   

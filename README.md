@@ -49,8 +49,12 @@ data(NA_merFISH)
 ### Usage:
 
 ```
-NA_merFISH_infer = infer(NA_merFISH, NA_scRNA)
+NA_merFISH_infer = infer_v2(NA_merFISH, NA_scRNA)
 ```
+
+### Output
+A Seurat object: Inferred expresstion matrix is stored in "enhanced" assay.
+
 
 For step by step usage, see:
 - Mouse striatum [example](http://htmlpreview.github.io/?https://github.com/Czh3/iSpatial/blob/master/vignettes/introduction.html).
