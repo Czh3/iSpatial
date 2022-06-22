@@ -52,10 +52,10 @@ data(NA_merFISH)
 NA_merFISH_infer = infer_v2(NA_merFISH, NA_scRNA)
 ```
 
-### Output
+### Output:
 A Seurat object: Inferred expresstion matrix is stored in "enhanced" assay.
 
-
+### Tutorial:
 For step by step usage, see:
 - Mouse striatum [example](http://htmlpreview.github.io/?https://github.com/Czh3/iSpatial/blob/master/vignettes/introduction.html).
 - Mouse cortex [example](http://htmlpreview.github.io/?https://github.com/Czh3/iSpatial/blob/master/vignettes/Cortex_example.html).
