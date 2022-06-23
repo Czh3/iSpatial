@@ -448,11 +448,11 @@ infer_v2 = function(
   # run pca
   spRNA = Seurat::FindVariableFeatures(spRNA, verbose = FALSE)
   SeuratObject::VariableFeatures(spRNA) = SeuratObject::VariableFeatures(spRNA)[SeuratObject::VariableFeatures(spRNA) %in% genes_select]
-  spRNA = Seurat::ScaleData(spRNA, verbose = FALSE)
+  spRNA = Seurat::ScaleData(spRNA, scale.max = 10, verbose = FALSE)
   spRNA = Seurat::RunPCA(spRNA, npcs = length(dims), verbose = FALSE)
   
   SeuratObject::VariableFeatures(scRNA) = SeuratObject::VariableFeatures(spRNA)
-  scRNA = Seurat::ScaleData(scRNA, verbose = FALSE)
+  scRNA = Seurat::ScaleData(scRNA, scale.max = 10, verbose = FALSE)
   scRNA = Seurat::RunPCA(scRNA, npcs = length(dims), verbose = FALSE)
   
   spRNA_images = suppressWarnings(spRNA@images)
@@ -464,6 +464,7 @@ infer_v2 = function(
                                             reduction = "rpca", 
                                             anchor.features = SeuratObject::VariableFeatures(spRNA),
                                             dims = dims,  
+                                            #scale = F,
                                             k.anchor = 20, 
                                             verbose = FALSE)
   integrated <- Seurat::IntegrateData(anchorset = anchors, 
@@ -480,6 +481,7 @@ infer_v2 = function(
   #SeuratObject::VariableFeatures(integrated, assay = "integrated") = genes_select
   integrated = Seurat::ScaleData(integrated, #vars.to.regress = "tech", features = genes_select,
                                  assay = "integrated", 
+                                 scale.max = 10, 
                                  verbose = FALSE)
   integrated = Seurat::RunPCA(integrated, 
                               npcs = length(dims), 
@@ -1105,4 +1107,140 @@ recommend_k = function(  spRNA,
 
 
 
+
+
+#' 2 round intergrated in iSpatial
+#' 
+#' This function integrates scRNA-seq and spatial transcriptome. With limited
+#' genes in merFISH/SeqFISH, iSpatial infer/enhance all genes from scRNA-seq.
+#' Finally, this function generates spatially expression of all genes.
+#' 
+#' @param spRNA seurat object of spatial transcriptome data.
+#' Should contain normalized data. Run Seurat::NormalizeData or others. 
+#' @param scRNA seurat object of single cell RNA-seq data.
+#' Should contain normalized data. Run Seurat::NormalizeData or others. 
+#' @param dims which dimensions to use when find the nearest neighbors
+#' @param k.neighbor number of neighbors to use when infer the expression
+#' @param infered.assay names of output assay in seurat object
+#' @param weighted.KNN we use a dynamics weight to assign scRNA values to spRNA.
+#' The dynamics weight based on the correlation between scRNA cell and spRNA 
+#' cell. 
+#' @param RNA.weight the weight of scRNA-seq expression when genes detected both
+#' in spRNA and scRNA. RNA.weight should be 0 to 1.
+#' The inferred expression = (1 - RNA.weight) * spRNA + RNA.weight * scRNA.
+#' @param n.core number of CPU cores used to parallel.
+#' @param correct.scRNA Whether to stabilize expression in scRNA.
+#' @param correct.spRNA Whether to stabilize expression in spRNA.
+#' @param correct.neighbor number of nearest neighbors used to correct expr.
+#' 
+#' @return returns a seurat object with inferred expression in infered.assay.
+#' 
+#' @export
+#' 
+intergrate = function(
+  spRNA,
+  scRNA, 
+  dims = 1:30,
+  k.neighbor = 30,
+  infered.assay = "enhanced",
+  weighted.KNN = TRUE,
+  RNA.weight = 0.5,
+  n.core = 8,
+  correct.spRNA = FALSE,
+  correct.scRNA = FALSE,
+  correct.neighbor = 5
+){
+  spRNA$tech = "spatial"
+  scRNA$tech = "scRNA"
+  
+  if(is.null(spRNA@assays$RNA)){
+    stop(paste(spRNA, " do not have 'RNA' assay."))
+  }
+  
+  if(is.null(scRNA@assays$RNA)){
+    stop(paste(scRNA, " do not have 'RNA' assay."))
+  }
+  
+  if(length(spRNA@assays$RNA@data) == 0){
+    stop(paste(spRNA, " is not normlized. Run Seurat::NormalizeData."))
+  }
+  
+  if(length(scRNA@assays$RNA@data) == 0){
+    stop(paste(scRNA, " is not normlized. Run Seurat::NormalizeData."))
+  }
+  
+  if(correct.spRNA){
+    message("Stablize spatial transcriptome.")
+    spRNA = stabilize_expr(spRNA, neighbor = correct.neighbor, n.core = n.core, npcs = length(dims))
+  }
+  
+  if(correct.scRNA){
+    message("Stablize single cell RNAseq.")
+    scRNA = stabilize_expr(scRNA, neighbor = correct.neighbor, n.core = n.core, npcs = length(dims))
+  }
+  
+  genes_select = intersect(rownames(scRNA), rownames(spRNA))
+  
+  if(length(genes_select) < 10){
+    stop("Too few intesected genes between scRNA and spRNA.")
+  }
+  
+  #
+  
+  # run pca
+  spRNA = Seurat::FindVariableFeatures(spRNA, verbose = FALSE)
+  SeuratObject::VariableFeatures(spRNA) = SeuratObject::VariableFeatures(spRNA)[SeuratObject::VariableFeatures(spRNA) %in% genes_select]
+  spRNA = Seurat::ScaleData(spRNA, scale.max = 10, verbose = FALSE)
+  spRNA = Seurat::RunPCA(spRNA, npcs = length(dims), verbose = FALSE)
+  
+  SeuratObject::VariableFeatures(scRNA) = SeuratObject::VariableFeatures(spRNA)
+  scRNA = Seurat::ScaleData(scRNA, scale.max = 10, verbose = FALSE)
+  scRNA = Seurat::RunPCA(scRNA, npcs = length(dims), verbose = FALSE)
+  
+  spRNA_images = suppressWarnings(spRNA@images)
+  
+  # merge two objects
+  message("1st level integration")
+  anchors <- Seurat::FindIntegrationAnchors(object.list = list(spRNA, scRNA), 
+                                            normalization.method = "LogNormalize", 
+                                            reduction = "rpca", 
+                                            anchor.features = SeuratObject::VariableFeatures(spRNA),
+                                            dims = dims,  
+                                            #scale = F,
+                                            k.anchor = 20, 
+                                            verbose = FALSE)
+  integrated <- Seurat::IntegrateData(anchorset = anchors, 
+                                      dims = dims, 
+                                      normalization.method = "LogNormalize",
+                                      verbose = FALSE)
+  
+  rm(scRNA, spRNA, anchors)
+  gc()
+  
+  
+  # 2nd level integration
+  message("2nd level integration")
+  #SeuratObject::VariableFeatures(integrated, assay = "integrated") = genes_select
+  integrated = Seurat::ScaleData(integrated, #vars.to.regress = "tech", features = genes_select,
+                                 assay = "integrated", 
+                                 scale.max = 10, 
+                                 verbose = FALSE)
+  integrated = Seurat::RunPCA(integrated, 
+                              npcs = length(dims), 
+                              assay = "integrated", 
+                              verbose = FALSE)
+  
+  integrated <- suppressWarnings( harmony::RunHarmony(
+    object = integrated,
+    group.by.vars = 'tech',
+    plot_convergence = F,
+    theta = 2,
+    lambda = 0.5,
+    assay.use = "integrated",
+    verbose = FALSE,
+    max.iter.harmony = 20
+  ))
+  
+  return(integrated)
+}
 
