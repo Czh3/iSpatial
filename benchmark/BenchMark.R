@@ -1,4 +1,7 @@
-# benchmark
+## benchmark
+# use the data from: Li, B., Zhang, W., Guo, C. et al. Benchmarking spatial and single-cell transcriptomics integration methods for transcript distribution prediction and cell type deconvolution. Nat Methods 19, 662–670 (2022). https://doi.org/10.1038/s41592-022-01480-9
+
+
 library(ggplot2)
 library(Seurat)
 library(iSpatial)
