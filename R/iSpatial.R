@@ -365,8 +365,6 @@ infer = function(
 }
 
 
-
-
 #' Main function of iSpatial
 #' 
 #' This function integrates scRNA-seq and spatial transcriptome. With limited
